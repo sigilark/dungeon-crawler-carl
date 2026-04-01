@@ -182,12 +182,28 @@
   <script>
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+    /* Unlock audio on first user gesture — browsers block autoplay otherwise.
+       Creating and resuming an AudioContext during a click event grants
+       permission for all subsequent Audio.play() calls in this session. */
+    let audioUnlocked = false;
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctx.resume().then(() => { audioUnlocked = true; });
+    }
+
     function playAudio(url) {
       return new Promise((resolve, reject) => {
         const audio = new Audio(url);
         audio.onended = resolve;
-        audio.onerror = reject;
-        audio.play().catch(reject);
+        audio.onerror = (e) => {
+          console.warn('Audio playback failed, skipping:', url);
+          resolve(); /* don't break the sequence on playback errors */
+        };
+        audio.play().catch(() => {
+          console.warn('Audio play blocked, skipping:', url);
+          resolve();
+        });
       });
     }
 
@@ -260,6 +276,7 @@
     }
 
     async function handleGenerate() {
+      unlockAudio(); /* must happen during user gesture (click) */
       const btn = document.getElementById('generate');
       const input = document.getElementById('trigger');
       const trigger = input.value.trim() || null;
@@ -313,6 +330,7 @@
     }
 
     async function handleReplay(id) {
+      unlockAudio();
       setStatus('Loading achievement...', true);
       try {
         const res = await fetch(`/api/achievements/${id}`);
