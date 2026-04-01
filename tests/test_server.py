@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 import pytest
@@ -46,31 +47,49 @@ def client(tmp_archive):
     return TestClient(app)
 
 
-@patch("server.synthesize_achievement", return_value=[])
+def _parse_sse(text):
+    """Parse SSE response text into a dict of {event_name: data_dict}."""
+    events = {}
+    for block in text.split("\n\n"):
+        if not block.strip():
+            continue
+        event, data = "", ""
+        for line in block.split("\n"):
+            if line.startswith("event: "):
+                event = line[7:]
+            if line.startswith("data: "):
+                data = line[6:]
+        if event and data:
+            events[event] = json.loads(data)
+    return events
+
+
+@patch("server.synthesize_achievement_parallel", return_value=[])
 @patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
 def test_generate_returns_achievement(mock_gen, mock_synth, client):
-    """POST /api/generate returns achievement data."""
+    """POST /api/generate streams achievement data via SSE."""
     res = client.post("/api/generate", json={"trigger": "took a long lunch"})
     assert res.status_code == 200
-    data = res.json()
-    assert data["title"] == "Corporate Houdini"
-    assert data["trigger"] == "took a long lunch"
-    assert "id" in data
-    assert "timestamp" in data
-    assert "audio_urls" in data
+    events = _parse_sse(res.text)
+    assert "achievement" in events
+    assert events["achievement"]["title"] == "Corporate Houdini"
+    assert events["achievement"]["trigger"] == "took a long lunch"
+    assert "id" in events["achievement"]
+    assert "audio" in events
+    assert "done" in events
 
 
-@patch("server.synthesize_achievement", return_value=[])
+@patch("server.synthesize_achievement_parallel", return_value=[])
 @patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
 def test_generate_without_trigger(mock_gen, mock_synth, client):
     """POST /api/generate works with null trigger."""
     res = client.post("/api/generate", json={})
     assert res.status_code == 200
-    data = res.json()
-    assert data["trigger"] is None
+    events = _parse_sse(res.text)
+    assert events["achievement"]["trigger"] is None
 
 
-@patch("server.synthesize_achievement", return_value=[])
+@patch("server.synthesize_achievement_parallel", return_value=[])
 @patch("server.generate", side_effect=ValueError("parse failed"))
 def test_generate_claude_error(mock_gen, mock_synth, client):
     """POST /api/generate returns 502 on Claude API failure."""
@@ -79,7 +98,7 @@ def test_generate_claude_error(mock_gen, mock_synth, client):
     assert "Generation failed" in res.json()["detail"]
 
 
-@patch("server.synthesize_achievement", return_value=[])
+@patch("server.synthesize_achievement_parallel", return_value=[])
 @patch("server.generate", side_effect=OSError("no key"))
 def test_generate_config_error(mock_gen, mock_synth, client):
     """POST /api/generate returns 500 on missing config."""
@@ -88,18 +107,18 @@ def test_generate_config_error(mock_gen, mock_synth, client):
     assert "Configuration error" in res.json()["detail"]
 
 
-@patch("server.synthesize_achievement", side_effect=Exception("ElevenLabs down"))
+@patch("server.synthesize_achievement_parallel", side_effect=Exception("ElevenLabs down"))
 @patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
 def test_generate_synthesis_failure_still_returns(mock_gen, mock_synth, client):
-    """POST /api/generate returns achievement even if synthesis fails."""
+    """POST /api/generate streams achievement even if synthesis fails."""
     res = client.post("/api/generate", json={"trigger": "test"})
     assert res.status_code == 200
-    data = res.json()
-    assert data["title"] == "Corporate Houdini"
-    assert data["audio_urls"] == []
+    events = _parse_sse(res.text)
+    assert events["achievement"]["title"] == "Corporate Houdini"
+    assert events["audio"]["audio_urls"] == []
 
 
-@patch("server.synthesize_achievement", return_value=[])
+@patch("server.synthesize_achievement_parallel", return_value=[])
 @patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
 def test_achievements_list(mock_gen, mock_synth, client):
     """GET /api/achievements returns archived entries."""
@@ -183,13 +202,13 @@ def test_root_redirects(client):
     assert "/static/index.html" in res.headers["location"]
 
 
-@patch("server.synthesize_achievement", return_value=["/fake/path/20260401_opener.wav", "/fake/path/20260401_reward.wav"])
+@patch("server.synthesize_achievement_parallel", return_value=["/fake/path/20260401_opener.wav", "/fake/path/20260401_reward.wav"])
 @patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
 def test_generate_returns_audio_urls(mock_gen, mock_synth, client):
-    """POST /api/generate converts file paths to /audio/ URLs."""
+    """POST /api/generate converts file paths to /audio/ URLs in SSE."""
     res = client.post("/api/generate", json={"trigger": "test"})
-    data = res.json()
-    assert data["audio_urls"] == [
+    events = _parse_sse(res.text)
+    assert events["audio"]["audio_urls"] == [
         "/audio/20260401_opener.wav",
         "/audio/20260401_reward.wav",
     ]

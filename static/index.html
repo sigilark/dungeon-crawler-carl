@@ -239,6 +239,25 @@
       el.className = pulsing ? 'status pulsing' : 'status';
     }
 
+    function parseSSEEvents(text) {
+      /* Parse SSE format: "event: name\ndata: json\n\n" */
+      const events = [];
+      const blocks = text.split('\n\n');
+      for (const block of blocks) {
+        if (!block.trim()) continue;
+        const lines = block.split('\n');
+        let event = '', data = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) event = line.slice(7);
+          if (line.startsWith('data: ')) data = line.slice(6);
+        }
+        if (event && data) {
+          try { events.push({ event, data: JSON.parse(data) }); } catch {}
+        }
+      }
+      return events;
+    }
+
     async function handleGenerate() {
       const btn = document.getElementById('generate');
       const input = document.getElementById('trigger');
@@ -254,18 +273,37 @@
           body: JSON.stringify({ trigger }),
         });
         if (!res.ok) throw new Error('Generation failed');
-        const data = await res.json();
 
-        showCard(data);
-        setStatus('Playing audio...', true);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let processed = new Set();
 
-        if (data.audio_urls && data.audio_urls.length > 0) {
-          await playSequence(data.audio_urls);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          for (const evt of parseSSEEvents(buffer)) {
+            const key = evt.event + JSON.stringify(evt.data);
+            if (processed.has(key)) continue;
+            processed.add(key);
+
+            if (evt.event === 'achievement') {
+              showCard(evt.data);
+              setStatus('Synthesizing audio...', true);
+              input.value = '';
+            } else if (evt.event === 'audio') {
+              if (evt.data.audio_urls && evt.data.audio_urls.length > 0) {
+                setStatus('Playing audio...', true);
+                await playSequence(evt.data.audio_urls);
+              }
+              setStatus('');
+            } else if (evt.event === 'done') {
+              loadHistory();
+            }
+          }
         }
-
-        setStatus('');
-        input.value = '';
-        loadHistory();
       } catch (err) {
         setStatus('Error: ' + err.message);
       } finally {

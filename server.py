@@ -6,12 +6,14 @@ Usage:
     Open http://localhost:8000
 """
 
+import asyncio
+import json
 import logging
 import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -20,7 +22,7 @@ from card import render_card
 import archive
 from config import OUTPUT_DIR, S3_BUCKET, STORAGE_MODE
 from generator import generate
-from synthesis import synthesize_achievement
+from synthesis import synthesize_achievement, synthesize_achievement_parallel
 
 logger = logging.getLogger("achievement-intercom")
 
@@ -70,6 +72,11 @@ def _entry_response(entry: dict) -> dict:
     }
 
 
+def _sse_event(event: str, data: dict) -> str:
+    """Format a Server-Sent Event string."""
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -81,9 +88,13 @@ def root():
 
 
 @app.post("/api/generate")
-def api_generate(req: GenerateRequest):
+async def api_generate(req: GenerateRequest):
+    """Generate achievement with SSE streaming: text first, then audio."""
+
+    # Phase 1: Generate text via Claude (blocking, run in thread)
+    loop = asyncio.get_event_loop()
     try:
-        achievement = generate(trigger=req.trigger)
+        achievement = await loop.run_in_executor(None, generate, req.trigger)
     except OSError as e:
         raise HTTPException(status_code=500, detail=f"Configuration error: {e}") from None
     except ValueError as e:
@@ -92,22 +103,51 @@ def api_generate(req: GenerateRequest):
         logger.exception("Achievement generation failed")
         raise HTTPException(status_code=502, detail=f"API error: {e}") from None
 
-    try:
-        audio_files = synthesize_achievement(achievement)
-    except OSError as e:
-        # Missing ElevenLabs key — return achievement without audio
-        logger.warning("Voice synthesis skipped: %s", e)
-        audio_files = []
-    except Exception:
-        logger.exception("Voice synthesis failed")
-        audio_files = []
-
+    # Save to archive immediately (with empty audio) to get an ID
     entry = archive.save(
         achievement=achievement,
         trigger=req.trigger,
-        audio_files=audio_files,
+        audio_files=[],
     )
-    return _entry_response(entry)
+
+    async def event_stream():
+        # Event 1: Achievement text — card renders immediately
+        yield _sse_event("achievement", {
+            "id": entry["id"],
+            "title": entry["title"],
+            "description": entry["description"],
+            "reward": entry["reward"],
+            "trigger": entry.get("trigger"),
+        })
+
+        # Phase 2: Synthesize audio in parallel (run in thread pool)
+        audio_files = []
+        try:
+            audio_files = await loop.run_in_executor(
+                None, synthesize_achievement_parallel, achievement
+            )
+            archive.update_audio(entry["id"], audio_files)
+        except OSError as e:
+            logger.warning("Voice synthesis skipped: %s", e)
+        except Exception:
+            logger.exception("Voice synthesis failed")
+
+        # Event 2: Audio URLs — playback starts
+        yield _sse_event("audio", {
+            "audio_urls": _audio_urls(audio_files),
+        })
+
+        # Event 3: Done
+        yield _sse_event("done", {})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.get("/api/achievements")

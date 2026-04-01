@@ -93,6 +93,15 @@ def _local_get(entry_id: int) -> dict | None:
     return _row_to_dict(row) if row else None
 
 
+def _local_update_audio(entry_id: int, audio_files: list[str]) -> None:
+    conn = _get_db()
+    conn.execute(
+        "UPDATE achievements SET audio_files = ? WHERE id = ?",
+        (json.dumps(audio_files), entry_id),
+    )
+    conn.commit()
+
+
 # ---------------------------------------------------------------------------
 # DynamoDB backend (cloud mode)
 # ---------------------------------------------------------------------------
@@ -159,6 +168,15 @@ def _dynamo_get(entry_id: int) -> dict | None:
     return item
 
 
+def _dynamo_update_audio(entry_id: int, audio_files: list[str]) -> None:
+    table = _get_table()
+    table.update_item(
+        Key={"id": entry_id},
+        UpdateExpression="SET audio_files = :af",
+        ExpressionAttributeValues={":af": audio_files},
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public API — dispatches based on STORAGE_MODE
 # ---------------------------------------------------------------------------
@@ -183,3 +201,11 @@ def get(entry_id: int) -> dict | None:
     if STORAGE_MODE == "cloud":
         return _dynamo_get(entry_id)
     return _local_get(entry_id)
+
+
+def update_audio(entry_id: int, audio_files: list[str]) -> None:
+    """Update the audio_files for an existing archive entry."""
+    if STORAGE_MODE == "cloud":
+        _dynamo_update_audio(entry_id, audio_files)
+    else:
+        _local_update_audio(entry_id, audio_files)
