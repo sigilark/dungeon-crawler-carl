@@ -1,6 +1,6 @@
-# Dungeon Crawler Carl — Achievement System
+# The Dungeon Intercom
 
-A snarky, AI-powered achievement reward system with voice synthesis. Give it a mundane life event, and it generates a biting achievement announcement — complete with title, description, and a reward that hits where it hurts. Optionally speaks it aloud using a cloned voice with robotic AI effects.
+The omnipresent announcement system of a reality-show dungeon. Describe what you did, and the intercom delivers a snarky achievement announcement — complete with title, biting description, and a reward that hurts. Speaks it aloud using a cloned voice with robotic AI effects while billions of alien viewers watch.
 
 Inspired by the dungeon announcer from the *Dungeon Crawler Carl* book series.
 
@@ -12,8 +12,8 @@ Inspired by the dungeon announcer from the *Dungeon Crawler Carl* book series.
 |-------|--------|-------------|
 | 1 | ✅ Complete | CLI generation — achievements printed to terminal |
 | 2 | ✅ Complete | ElevenLabs voice synthesis with AI audio effects |
-| 3 | ✅ Complete | Achievement archive, audio caching, `--list`, `--replay` |
-| 4 | ✅ Complete | Web UI via FastAPI + single-page app |
+| 3 | ✅ Complete | Achievement archive (SQLite/DynamoDB), audio caching (local/S3), `--list`, `--replay` |
+| 4 | ✅ Complete | Web UI via FastAPI + SSE streaming + parallel TTS + shareable cards |
 
 ---
 
@@ -21,22 +21,28 @@ Inspired by the dungeon announcer from the *Dungeon Crawler Carl* book series.
 
 ```
 dungeon_crawler_carl/
-├── main.py               # Entry point and CLI
+├── main.py               # CLI entry point
 ├── generator.py          # Claude API achievement generation
 ├── config.py             # Env vars, constants, system prompt
 ├── display.py            # Terminal formatting
 ├── voice.py              # ElevenLabs TTS + AI audio effects
 ├── player.py             # Audio playback via pygame
-├── archive.py            # Achievement history (JSON log + audio cache)
-├── server.py             # FastAPI web server
+├── synthesis.py          # Audio synthesis pipeline (sequential + parallel)
+├── archive.py            # Achievement persistence (SQLite local, DynamoDB cloud)
+├── storage.py            # S3 download helper for CLI replay
+├── card.py               # Shareable achievement card PNG renderer
+├── server.py             # FastAPI web server with SSE streaming
 ├── static/index.html     # Web UI (single-page app)
+├── Dockerfile            # Production container
+├── cdk/                  # AWS CDK infrastructure (ECS Fargate + DynamoDB + S3)
 ├── finetune.py           # XTTS v2 fine-tuning script (experimental)
-├── reference_audio/      # Voice reference samples (for fine-tuning)
-├── transcripts/          # Transcript files (for fine-tuning)
+├── reference_audio/      # Voice reference samples
+├── transcripts/          # Transcript files
 ├── output/               # Generated audio files
-├── tests/                # Unit tests (43 tests)
+├── tests/                # Unit tests (64 tests)
+├── ruff.toml             # Linting config
+├── requirements.txt      # Production dependencies
 ├── .env.example          # Environment variable template
-├── .gitignore
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -51,14 +57,13 @@ dungeon_crawler_carl/
 git clone https://github.com/dayelostraco/dungeon-crawler-carl.git
 cd dungeon-crawler-carl
 python -m venv .venv
-source .venv/bin/activate        # macOS/Linux
-# .venv\Scripts\activate         # Windows
+source .venv/bin/activate
 ```
 
 ### 2. Install dependencies
 
 ```bash
-pip install anthropic python-dotenv elevenlabs pygame pedalboard numpy soundfile librosa fastapi "uvicorn[standard]"
+pip install -r requirements.txt
 ```
 
 ### 3. Configure environment
@@ -76,89 +81,15 @@ ELEVENLABS_API_KEY=your_elevenlabs_key_here
 
 ### 4. ElevenLabs voice setup
 
-Create a voice on [ElevenLabs](https://elevenlabs.io) by uploading your reference audio samples. Copy the voice ID and optionally set it in `.env`:
+Create a voice on [ElevenLabs](https://elevenlabs.io) by uploading your reference audio samples. Optionally set the voice ID in `.env`:
 
 ```
 ELEVENLABS_VOICE_ID=your_voice_id_here
 ```
 
-If not set, the system uses a default voice.
-
 ---
 
-## Usage
-
-### Generate a random achievement
-
-```bash
-python main.py
-```
-
-### Context-aware achievement
-
-```bash
-python main.py --trigger "spilled coffee on the keyboard again"
-python main.py --trigger "pushed to production on a Friday at 4:59pm"
-python main.py --trigger "forgot to mute on a zoom call"
-```
-
-### Speak achievement aloud
-
-```bash
-python main.py --speak
-python main.py --trigger "took a 2 hour lunch and nobody noticed" --speak
-```
-
-### Audio only (no terminal output)
-
-```bash
-python main.py --speak-only
-python main.py --trigger "accidentally replied-all to the entire company" --speak-only
-```
-
-### Browse achievement history
-
-```bash
-python main.py --list
-```
-
-### Replay a past achievement (with cached audio)
-
-```bash
-python main.py --replay 1
-```
-
-### Raw JSON output
-
-```bash
-python main.py --raw
-python main.py --trigger "event" --raw
-```
-
-### Example terminal output
-
-```
-╔══════════════════════════════════════════════════╗
-║  ACHIEVEMENT UNLOCKED                            ║
-╚══════════════════════════════════════════════════╝
-
-  ★  Corporate Houdini
-
-  New Achievement! You vanished for 120 minutes and returned
-  like nothing happened. (Nothing did — no one looks for you.)
-  Your Reward!
-
-  REWARD  Unlocked: The crushing realization that your absence
-          changes absolutely nothing.
-
-──────────────────────────────────────────────────
-```
-
----
-
-## Web UI (Phase 4)
-
-A browser-based interface for generating and replaying achievements.
+## Web UI
 
 ### Start the server
 
@@ -169,48 +100,91 @@ uvicorn server:app --reload
 
 ### Features
 
-- Text input for trigger events with a Generate button
-- Achievement card with game-style dark theme and gold accents
-- Automatic audio playback in the browser with correct segment pauses
-- Achievement history list — click any past achievement to replay it
-- Loading indicator during the 8-15 second generation process
+- Dark-themed dungeon aesthetic with gold accents
+- Text input — describe what you did, crawler
+- **SSE streaming** — achievement card appears in ~5s, audio follows ~6s later
+- **Parallel TTS** — 5 audio segments synthesized simultaneously
+- **Shareable achievement cards** — download a high-DPI PNG to share
+- Achievement history with click-to-replay (cached audio, no re-synthesis)
+- Progressive status: "Summoning achievement..." → "Synthesizing audio..." → "Playing..."
 
 ---
 
-## Voice Synthesis (Phase 2)
+## CLI Usage
 
-Voice synthesis uses the [ElevenLabs API](https://elevenlabs.io) with a post-processing AI effect chain:
+```bash
+# Random achievement
+python main.py
+
+# Context-aware
+python main.py --trigger "pushed to production on a Friday at 4:59pm"
+
+# With voice
+python main.py --trigger "took a 2 hour lunch and nobody noticed" --speak
+
+# Audio only
+python main.py --speak-only
+
+# Browse history
+python main.py --list
+
+# Replay with cached audio
+python main.py --replay 1
+
+# Raw JSON
+python main.py --raw
+```
+
+### Example output
+
+```
+╔══════════════════════════════════════════════════╗
+║  ACHIEVEMENT UNLOCKED                            ║
+╚══════════════════════════════════════════════════╝
+
+  ★  Corporate Houdini
+
+  New Achievement! You vanished for 120 minutes and the
+  dungeon did not notice. Your Reward!
+
+  REWARD  Princess Donut has reviewed your absence and
+          rated it: forgettable.
+
+──────────────────────────────────────────────────
+```
+
+---
+
+## Voice Synthesis
+
+Voice synthesis uses the [ElevenLabs API](https://elevenlabs.io) with a post-processing AI effect chain via [pedalboard](https://github.com/spotify/pedalboard):
 
 ### Audio pipeline
 
-1. Text is split into segments: **"New Achievement!"** | **title** | **body** | **"Your Reward!"** | **reward**
-2. Each segment is synthesized via ElevenLabs with your cloned voice
-3. AI effects are applied via [pedalboard](https://github.com/spotify/pedalboard):
-   - **Chorus** — subtle doubling for synthetic shimmer
-   - **Pitch shift** (-1.0 semitone) — slight deepening
+1. Text split into 5 segments: **opener** | **title** | **body** | **closer** | **reward**
+2. Each segment synthesized via ElevenLabs (parallel in web, sequential in CLI)
+3. AI effects applied per-segment:
+   - **Chorus** (2Hz, 25% depth) — synthetic shimmer
+   - **Pitch shift** (-1.0 semitone) — gravitas
    - **Bitcrush** (11-bit) — digital grit
-   - **Reverb** — metallic AI-booth ambiance
+   - **Reverb** (25% room, 20% wet) — AI-booth ambiance
 4. Segment-specific processing:
-   - **"New Achievement!"** — boosted +5dB
-   - **Body** — played at 1.15x speed
-   - **"Your Reward!"** — volume ramp from 40% to 220% (crescendo)
-5. All segments pre-synthesized before playback for seamless delivery
-
-### Audio caching
-
-When `--speak` is used, synthesized audio files are cached in `output/` and linked to the achievement archive. Using `--replay` plays cached audio without re-calling the ElevenLabs API.
+   - **"New Achievement!"** — +5dB boost
+   - **Title** — +3dB boost
+   - **Body** — 1.15x speed, +3dB
+   - **"Your Reward!"** — volume crescendo (40% → 220%)
+5. TTS text expansion: `+/-` symbols expanded to "plus"/"minus" for correct speech
 
 ---
 
-## Achievement Archive (Phase 3)
+## Achievement Archive
 
-Every generated achievement is automatically saved to `achievements.json` with:
-- Achievement title, description, and reward
-- Trigger text (if provided)
-- Timestamp
-- Paths to cached audio files (if `--speak` was used)
+Achievements auto-save with dual-backend persistence:
 
-Use `--list` to browse history and `--replay N` to replay any past achievement.
+| Mode | Metadata | Audio | Use case |
+|------|----------|-------|----------|
+| `STORAGE_MODE=local` (default) | SQLite | Local filesystem | Dev, CLI, Docker |
+| `STORAGE_MODE=cloud` | DynamoDB | S3 (presigned URLs) | Production AWS |
 
 ---
 
@@ -220,51 +194,50 @@ Use `--list` to browse history and `--replay N` to replay any past achievement.
 |----------|----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | Yes | — | Anthropic API key for Claude |
 | `ELEVENLABS_API_KEY` | For voice | — | ElevenLabs API key for TTS |
-| `ELEVENLABS_VOICE_ID` | No | built-in default | ElevenLabs voice ID to use |
-| `MODEL` | No | `claude-opus-4-5` | Claude model to use |
+| `ELEVENLABS_VOICE_ID` | No | built-in default | ElevenLabs voice ID |
+| `MODEL` | No | `claude-opus-4-5` | Claude model |
 | `MAX_TOKENS` | No | `400` | Max tokens for generation |
-| `OUTPUT_DIR` | No | `./output` | Audio output directory (set for EFS in container) |
-| `ARCHIVE_FILE` | No | `./achievements.json` | Archive file path (set for EFS in container) |
+| `STORAGE_MODE` | No | `local` | `local` (SQLite) or `cloud` (DynamoDB+S3) |
+| `DYNAMODB_TABLE` | Cloud only | `achievements` | DynamoDB table name |
+| `S3_BUCKET` | Cloud only | `achievement-intercom-audio` | S3 bucket for audio |
+| `DB_PATH` | No | `./achievements.db` | SQLite database path |
+| `OUTPUT_DIR` | No | `./output` | Audio output directory |
 
 ---
 
 ## AWS Deployment
 
-The app deploys to ECS Fargate behind an ALB using AWS CDK (Python).
+Deploys to ECS Fargate behind an ALB at `achievement.sigilark.com` using AWS CDK.
 
 ### Architecture
 
 ```
-Internet → ALB (HTTP) → ECS Fargate (0.5 vCPU, 1GB) → Container (uvicorn :8000)
-                                                       ↳ EFS (/app/data — audio cache + archive)
-                                                       ↳ Secrets Manager (API keys)
+Internet → ALB (HTTPS) → ECS Fargate (0.5 vCPU, 1GB) → Container (uvicorn :8000)
+                                                        ↳ DynamoDB (achievement metadata)
+                                                        ↳ S3 (audio cache, presigned URLs)
+                                                        ↳ Secrets Manager (API keys)
 ```
-
-### Prerequisites
-
-1. AWS account with CDK bootstrapped
-2. Secrets created in Secrets Manager:
-   - `achievement-intercom/anthropic-api-key`
-   - `achievement-intercom/elevenlabs-api-key`
-   - `achievement-intercom/elevenlabs-voice-id`
 
 ### Deploy
 
 ```bash
+# Create secrets first (one-time)
+aws secretsmanager create-secret --name achievement-intercom/anthropic-api-key --secret-string "key"
+aws secretsmanager create-secret --name achievement-intercom/elevenlabs-api-key --secret-string "key"
+aws secretsmanager create-secret --name achievement-intercom/elevenlabs-voice-id --secret-string "id"
+
+# Deploy
 cd cdk
 pip install -r requirements.txt
 cdk bootstrap   # first time only
 cdk deploy
 ```
 
-CDK handles everything: builds the Docker image, pushes to ECR, creates VPC/ALB/EFS/ECS, and deploys.
-
 ### Local Docker test
 
 ```bash
-docker build -t achievement-intercom .
-docker run -p 8000:8000 --env-file .env achievement-intercom
-# Open http://localhost:8000
+docker build -t dungeon-intercom .
+docker run -p 8000:8000 --env-file .env dungeon-intercom
 ```
 
 ---
@@ -274,13 +247,20 @@ docker run -p 8000:8000 --env-file .env achievement-intercom
 ### Run tests
 
 ```bash
-pip install pytest pytest-mock
+pip install pytest pytest-mock "moto[dynamodb,s3]"
 python -m pytest tests/ -v
+```
+
+### Lint
+
+```bash
+pip install ruff
+ruff check .
 ```
 
 ### Fine-tuning (experimental)
 
-A local XTTS v2 fine-tuning script is included for voice cloning experimentation:
+Local XTTS v2 voice cloning experimentation:
 
 ```bash
 python finetune.py --prepare   # Segment audio with Whisper

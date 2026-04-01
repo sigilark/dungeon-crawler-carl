@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-04-01
+
+### Added
+- **SSE streaming** — achievement card appears in ~5s, audio follows ~6s later (was ~30s blocking)
+- **Parallel TTS synthesis** — 5 audio segments synthesized simultaneously via ThreadPoolExecutor
+- **Shareable achievement cards** — high-DPI PNG renderer (`card.py`) with download button
+- **`/health` endpoint** — lightweight health check (ALB no longer queries archive)
+- **TTS text expansion** — `+/-` symbols expanded to "plus"/"minus" for correct speech
+- `archive.update_audio()` for updating audio files after streaming synthesis
+
+### Changed
+- **Renamed to "The Dungeon Intercom"** — full Dungeon Crawler Carl universe integration
+- **System prompt rewritten** — dungeon announcer persona with crawlers, sponsors, Princess Donut,
+  alien viewers, loot boxes, and dungeon bureaucracy
+- Reward format diversified — reduced "Unlocked:" bias, added dungeon loot, sponsor reads,
+  stat penalties, system messages, and Princess Donut commentary
+- Parenthetical asides reduced to ~1 in 6 achievements
+- Sponsor reads and fine print capped at 10 words max
+- Description audio boosted +3dB to match title level
+- `synthesis.py` refactored — shared `_parse_segments()`, sequential + parallel functions
+- Dockerfile updated with missing modules (`synthesis.py`, `storage.py`)
+
 ## [0.6.0] - 2026-04-01
 
 ### Changed — Persistence Migration
