@@ -1,6 +1,3 @@
-import json
-import os
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -25,18 +22,20 @@ SAMPLE_ARCHIVE_ENTRY = {
 
 @pytest.fixture
 def tmp_archive(tmp_path, monkeypatch):
-    """Redirect archive to temp location."""
-    archive_file = tmp_path / "achievements.json"
+    """Redirect archive to temp SQLite DB."""
+    db_path = tmp_path / "test.db"
     import config
 
-    monkeypatch.setattr(config, "ARCHIVE_FILE", archive_file)
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+    monkeypatch.setattr(config, "STORAGE_MODE", "local")
 
     import importlib
 
     import archive
 
+    archive._DB_INIT = False
     importlib.reload(archive)
-    return archive_file
+    return db_path
 
 
 @pytest.fixture

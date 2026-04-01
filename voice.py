@@ -9,7 +9,7 @@ from elevenlabs.client import ElevenLabs
 from pedalboard import Bitcrush, Chorus, Pedalboard, PitchShift, Reverb
 from pedalboard.io import AudioFile
 
-from config import OUTPUT_DIR
+from config import OUTPUT_DIR, S3_BUCKET, STORAGE_MODE
 
 ELEVENLABS_API_KEY: str = os.environ.get("ELEVENLABS_API_KEY", "")
 VOICE_ID: str = os.environ.get("ELEVENLABS_VOICE_ID", "dHd5gvgSOzSfduK4CvEg")
@@ -119,4 +119,18 @@ def synthesize(text: str, filename_hint: str = "", volume_ramp: bool = False, sp
     _apply_ai_effect(raw_path, out_path, volume_ramp=volume_ramp, speed=speed, gain_db=gain_db)
     raw_path.unlink()  # clean up raw file
 
+    if STORAGE_MODE == "cloud":
+        return _upload_to_s3(out_path)
+
     return out_path
+
+
+def _upload_to_s3(local_path: Path) -> str:
+    """Upload a local audio file to S3 and delete the local copy. Returns the S3 key."""
+    import boto3
+
+    s3 = boto3.client("s3")
+    s3_key = f"audio/{local_path.name}"
+    s3.upload_file(str(local_path), S3_BUCKET, s3_key, ExtraArgs={"ContentType": "audio/wav"})
+    local_path.unlink()
+    return s3_key

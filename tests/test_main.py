@@ -41,10 +41,11 @@ def test_parse_args_trigger_and_raw():
         assert args.raw is True
 
 
+@patch("main.archive.save", return_value={"id": 1})
 @patch("main.generate", return_value=SAMPLE_ACHIEVEMENT)
 @patch("main.print_achievement")
 @patch("main.ANTHROPIC_API_KEY", "sk-test")
-def test_main_normal_mode(mock_display, mock_gen):
+def test_main_normal_mode(mock_display, mock_gen, mock_save):
     """Normal mode: generates and prints achievement."""
     with patch("sys.argv", ["main.py"]):
         from main import main
@@ -53,10 +54,11 @@ def test_main_normal_mode(mock_display, mock_gen):
     mock_display.assert_called_once_with(SAMPLE_ACHIEVEMENT)
 
 
+@patch("main.archive.save", return_value={"id": 1})
 @patch("main.generate", return_value=SAMPLE_ACHIEVEMENT)
 @patch("main.print_achievement")
 @patch("main.ANTHROPIC_API_KEY", "sk-test")
-def test_main_with_trigger(mock_display, mock_gen):
+def test_main_with_trigger(mock_display, mock_gen, mock_save):
     """Trigger mode: passes trigger to generate."""
     with patch("sys.argv", ["main.py", "--trigger", "spilled coffee"]):
         from main import main

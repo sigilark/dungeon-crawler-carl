@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import archive
-from config import OUTPUT_DIR
+from config import OUTPUT_DIR, S3_BUCKET, STORAGE_MODE
 from generator import generate
 from synthesis import synthesize_achievement
 
@@ -34,7 +34,24 @@ class GenerateRequest(BaseModel):
 
 
 def _audio_urls(audio_files: list[str]) -> list[str]:
-    """Convert absolute file paths to /audio/{filename} URLs."""
+    """Convert audio references to URLs for the frontend.
+
+    Local mode: /audio/{filename} (served by this app).
+    Cloud mode: presigned S3 GET URLs (1-hour expiry, served by S3 directly).
+    """
+    if STORAGE_MODE == "cloud":
+        import boto3
+
+        s3 = boto3.client("s3")
+        return [
+            s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": S3_BUCKET, "Key": f},
+                ExpiresIn=3600,
+            )
+            for f in audio_files
+            if f
+        ]
     return [f"/audio/{Path(f).name}" for f in audio_files if f]
 
 

@@ -7,6 +7,7 @@ import archive
 from config import ANTHROPIC_API_KEY
 from display import print_achievement
 from generator import generate
+from storage import resolve_audio_path
 from synthesis import play_audio_sequence, synthesize_achievement
 
 
@@ -87,12 +88,8 @@ def main() -> None:
         print_achievement(entry)
 
         if entry.get("audio_files"):
-            existing = [f for f in entry["audio_files"] if os.path.exists(f)]
-            if existing:
-                play_audio_sequence(existing)
-            else:
-                audio_files = synthesize_achievement(entry)
-                play_audio_sequence(audio_files)
+            resolved = [str(resolve_audio_path(f)) for f in entry["audio_files"]]
+            play_audio_sequence(resolved)
         elif os.environ.get("ELEVENLABS_API_KEY"):
             audio_files = synthesize_achievement(entry)
             play_audio_sequence(audio_files)

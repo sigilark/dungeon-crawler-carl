@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-04-01
+
+### Changed — Persistence Migration
+- `archive.py` — rewritten with dual backend: SQLite (local/container) and DynamoDB (cloud/production)
+  - SQLite replaces flat JSON file — handles concurrent writes, works in containers without EFS
+  - DynamoDB backend with atomic auto-increment IDs and PAY_PER_REQUEST billing
+  - Same public API (`save`, `load_all`, `get`) regardless of backend
+- `voice.py` — adds S3 upload in cloud mode: synthesize locally, upload WAV, return S3 key
+- `server.py` — `_audio_urls()` returns presigned S3 GET URLs (1hr expiry) in cloud mode
+- `storage.py` (new) — `resolve_audio_path()` helper downloads S3 audio to temp dir for CLI playback
+- `config.py` — new env vars: `STORAGE_MODE`, `DYNAMODB_TABLE`, `S3_BUCKET`, `DB_PATH`
+- CDK stack — replaced EFS with DynamoDB table + S3 bucket, updated IAM grants
+- 64 tests (was 57): 16 archive tests (9 SQLite + 7 DynamoDB via moto)
+- New dependency: `boto3`
+
 ## [0.5.0] - 2026-04-01
 
 ### Added — AWS Deployment
