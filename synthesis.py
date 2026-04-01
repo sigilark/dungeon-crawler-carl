@@ -82,6 +82,7 @@ def synthesize_achievement(achievement: dict) -> list[str]:
         body,
         filename_hint=SEGMENT_DESCRIPTION,
         speed=1.15,  # 15% faster — keeps the description from dragging
+        gain_db=3.0,  # +3dB — match the title level so it doesn't sound quiet after the opener
     )))
 
     if closer:
