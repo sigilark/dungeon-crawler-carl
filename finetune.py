@@ -146,7 +146,7 @@ def train():
     print("Starting fine-tuning (CPU — this will be slow)...")
     print("Expect ~15-30 min per epoch on Apple Silicon CPU\n")
 
-    config_path, xtts_ckpt, tokenizer, trainer_out, speaker_ref = train_gpt(
+    _config_path, _xtts_ckpt, _tokenizer, trainer_out, speaker_ref = train_gpt(
         language="en",
         num_epochs=6,
         batch_size=2,
@@ -272,7 +272,6 @@ def test():
     opener = np.clip(opener * 1.8, -1.0, 1.0)
 
     pause_short = np.zeros(int(0.15 * 24000))
-    pause_reward = np.zeros(int(0.6 * 24000))
 
     desc = np.concatenate([opener, pause_short, body])
     sf.write(str(OUTPUT_DIR / "ft_test_desc_combined.wav"), desc, 24000)
