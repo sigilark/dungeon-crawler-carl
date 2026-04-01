@@ -114,6 +114,18 @@
       color: #e0e0e0;
     }
     .card-reward strong { color: #f0c040; margin-right: 0.5rem; }
+    .card-actions { margin-top: 1rem; text-align: right; }
+    .share-btn {
+      padding: 0.4rem 1rem;
+      background: transparent;
+      color: #f0c040;
+      border: 1px solid #f0c040;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .share-btn:hover { background: #f0c040; color: #1a1a2e; }
 
     .history { width: 100%; max-width: 600px; }
     .history h2 {
@@ -156,6 +168,9 @@
     <div class="card-title" id="cardTitle"></div>
     <div class="card-desc" id="cardDesc"></div>
     <div class="card-reward"><strong>REWARD</strong> <span id="cardReward"></span></div>
+    <div class="card-actions" id="cardActions" style="display:none;">
+      <button class="share-btn" id="shareBtn" onclick="handleShare()">Share Card</button>
+    </div>
   </div>
 
   <div class="history">
@@ -191,18 +206,45 @@
       }
     }
 
+    let currentAchievementId = null;
+
     function stripAnnouncerTags(desc) {
       return desc.replace(/^New Achievement!\s*/i, '').replace(/\s*Your Reward!\s*$/i, '').trim();
     }
 
     function showCard(data) {
+      currentAchievementId = data.id;
       document.getElementById('cardTitle').textContent = data.title;
       document.getElementById('cardDesc').textContent = stripAnnouncerTags(data.description);
       document.getElementById('cardReward').textContent = data.reward;
+      document.getElementById('cardActions').style.display = data.id ? 'block' : 'none';
       const card = document.getElementById('card');
       card.classList.remove('visible');
       void card.offsetWidth; /* reset animation */
       card.classList.add('visible');
+    }
+
+    async function handleShare() {
+      if (!currentAchievementId) return;
+      const url = `/api/achievements/${currentAchievementId}/card.png`;
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const file = new File([blob], 'achievement.png', { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Achievement Unlocked' });
+        } else {
+          /* Fallback: download */
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `achievement_${currentAchievementId}.png`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') setStatus('Share failed: ' + err.message);
+      }
     }
 
     function setStatus(text, pulsing = false) {

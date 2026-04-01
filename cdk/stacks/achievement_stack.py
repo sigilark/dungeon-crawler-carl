@@ -193,7 +193,7 @@ class AchievementStack(Stack):
             port=8000,
             targets=[service],
             health_check=elbv2.HealthCheck(
-                path="/api/achievements",
+                path="/health",
                 interval=Duration.seconds(30),
                 timeout=Duration.seconds(5),
                 healthy_threshold_count=2,

@@ -11,9 +11,11 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+from card import render_card
 
 import archive
 from config import OUTPUT_DIR, S3_BUCKET, STORAGE_MODE
@@ -66,6 +68,11 @@ def _entry_response(entry: dict) -> dict:
         "trigger": entry.get("trigger"),
         "audio_urls": _audio_urls(entry.get("audio_files", [])),
     }
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 @app.get("/")
@@ -125,6 +132,16 @@ def api_achievement(entry_id: int):
                 entry["audio_files"] = []
 
     return _entry_response(entry)
+
+
+@app.get("/api/achievements/{entry_id}/card.png")
+def api_achievement_card(entry_id: int):
+    """Render a shareable PNG image of an achievement."""
+    entry = archive.get(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Achievement not found")
+    png_bytes = render_card(entry)
+    return Response(content=png_bytes, media_type="image/png")
 
 
 @app.get("/audio/{filename}")
