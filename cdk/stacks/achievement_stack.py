@@ -127,6 +127,7 @@ class AchievementStack(Stack):
             self,
             "AppImage",
             directory="..",
+            platform=ecr_assets.Platform.LINUX_ARM64,  # match Apple Silicon + ARM Fargate
             exclude=[
                 "cdk",
                 "finetune_data",
@@ -150,6 +151,10 @@ class AchievementStack(Stack):
             "TaskDef",
             cpu=512,
             memory_limit_mib=1024,
+            runtime_platform=ecs.RuntimePlatform(
+                cpu_architecture=ecs.CpuArchitecture.ARM64,
+                operating_system_family=ecs.OperatingSystemFamily.LINUX,
+            ),
         )
 
         # Grant DynamoDB + S3 access to task role
