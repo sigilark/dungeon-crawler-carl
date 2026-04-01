@@ -90,6 +90,14 @@ def _apply_ai_effect(input_path: Path, output_path: Path, volume_ramp: bool = Fa
     sf.write(str(output_path), mono, sr, format="WAV")
 
 
+def _expand_for_tts(text: str) -> str:
+    """Expand symbols and patterns that TTS engines misread."""
+    # "-7" → "minus 7", "+3" → "plus 3" (stat boosts/penalties in rewards)
+    text = re.sub(r"(?<!\w)\+(\d)", r"plus \1", text)
+    text = re.sub(r"(?<!\w)-(\d)", r"minus \1", text)
+    return text
+
+
 def synthesize(text: str, filename_hint: str = "", volume_ramp: bool = False, speed: float = 1.0, gain_db: float = 0.0) -> Path:
     """
     Synthesize text using the ElevenLabs cloned voice with AI effect.
@@ -99,6 +107,7 @@ def synthesize(text: str, filename_hint: str = "", volume_ramp: bool = False, sp
     speed: playback speed multiplier (1.0 = normal, 1.15 = slightly faster)
     Returns Path to the generated WAV file in output/
     """
+    text = _expand_for_tts(text)
     client = _get_client()
 
     slug = _slugify(filename_hint) if filename_hint else "clip"
