@@ -224,27 +224,13 @@
       card.classList.add('visible');
     }
 
-    async function handleShare() {
+    function handleShare() {
       if (!currentAchievementId) return;
-      const url = `/api/achievements/${currentAchievementId}/card.png`;
-      try {
-        const res = await fetch(url);
-        const blob = await res.blob();
-        const file = new File([blob], 'achievement.png', { type: 'image/png' });
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'Achievement Unlocked' });
-        } else {
-          /* Fallback: download */
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = `achievement_${currentAchievementId}.png`;
-          a.click();
-          URL.revokeObjectURL(a.href);
-        }
-      } catch (err) {
-        if (err.name !== 'AbortError') setStatus('Share failed: ' + err.message);
-      }
+      /* Direct download — avoids async/gesture chain issues with Web Share API */
+      const a = document.createElement('a');
+      a.href = `/api/achievements/${currentAchievementId}/card.png`;
+      a.download = `achievement_${currentAchievementId}.png`;
+      a.click();
     }
 
     function setStatus(text, pulsing = false) {
