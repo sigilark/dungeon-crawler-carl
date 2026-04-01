@@ -45,11 +45,20 @@ class AchievementStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # --- VPC ---
+        # No NAT gateway — tasks run in public subnets with public IPs.
+        # Saves ~$32/month. Acceptable for a public-facing app with no
+        # internal services to protect.
         vpc = ec2.Vpc(
             self,
             "Vpc",
             max_azs=2,
-            nat_gateways=1,
+            nat_gateways=0,
+            subnet_configuration=[
+                ec2.SubnetConfiguration(
+                    name="Public",
+                    subnet_type=ec2.SubnetType.PUBLIC,
+                ),
+            ],
         )
 
         # --- DNS + TLS ---
@@ -192,7 +201,7 @@ class AchievementStack(Stack):
             cluster=cluster,
             task_definition=task_def,
             desired_count=1,
-            assign_public_ip=False,
+            assign_public_ip=True,  # required in public subnet (no NAT)
             platform_version=ecs.FargatePlatformVersion.LATEST,
         )
 
