@@ -137,7 +137,7 @@ def synthesize(
     audio = client.text_to_speech.convert(
         voice_id=VOICE_ID,
         text=text,
-        model_id="eleven_turbo_v2_5",
+        model_id="eleven_multilingual_v2",
     )
 
     with open(raw_path, "wb") as f:
@@ -145,7 +145,13 @@ def synthesize(
             f.write(chunk)
 
     # Apply effects to WAV (lossless processing), then encode final output as MP3 (10x smaller)
-    _apply_ai_effect(raw_path, processed_wav, volume_ramp=volume_ramp, speed=speed, gain_db=gain_db)
+    _apply_ai_effect(
+        raw_path,
+        processed_wav,
+        volume_ramp=volume_ramp,
+        speed=speed,
+        gain_db=gain_db,
+    )
     raw_path.unlink()
 
     _encode_mp3(processed_wav, out_path)
