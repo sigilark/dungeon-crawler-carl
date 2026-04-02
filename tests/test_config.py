@@ -11,7 +11,7 @@ def test_defaults_without_env(monkeypatch):
 
     importlib.reload(config)
 
-    assert config.MODEL == "claude-opus-4-5"
+    assert config.MODEL == "claude-sonnet-4-5"
     assert config.MAX_TOKENS == 400
 
 
