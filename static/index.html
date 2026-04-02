@@ -187,7 +187,8 @@
       filter: invert(78%) sepia(60%) saturate(500%) hue-rotate(5deg);
       flex-shrink: 0;
     }
-    .history-item .title { color: #f0c040; font-size: 0.85rem; }
+    .history-item .title { color: #f0c040; font-size: 0.85rem; flex: 1; }
+    .history-date { color: #555; font-size: 0.7rem; white-space: nowrap; }
     .history-item .trigger { color: #666; font-size: 0.75rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .history-empty { color: #555; font-size: 0.85rem; font-style: italic; }
     .history-pagination {
@@ -251,8 +252,7 @@
     <div class="card-desc" id="cardDesc"></div>
     <div class="card-reward"><strong>REWARD</strong> <span id="cardReward"></span></div>
     <div class="card-actions" id="cardActions" style="display:none;">
-      <button class="share-btn" id="shareLinkBtn" onclick="handleShareLink()">Copy Link</button>
-      <button class="share-btn" id="shareBtn" onclick="handleShare()">Download Card</button>
+      <button class="share-btn" id="shareLinkBtn" onclick="handleShareLink()">Share</button>
     </div>
   </div>
 
@@ -355,14 +355,24 @@
     function handleShareLink() {
       if (!currentAchievementId) return;
       const url = `${window.location.origin}/a/${currentAchievementId}`;
-      navigator.clipboard.writeText(url).then(() => {
-        const btn = document.getElementById('shareLinkBtn');
+      const title = document.getElementById('cardTitle').textContent;
+      const btn = document.getElementById('shareLinkBtn');
+
+      function showCopied() {
         btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
-      }).catch(() => {
-        /* Fallback: prompt with the URL */
+        setTimeout(() => { btn.textContent = 'Share'; }, 2000);
+      }
+
+      /* Try native share sheet (requires HTTPS), then clipboard, then prompt */
+      if (navigator.share && window.isSecureContext) {
+        navigator.share({ title, url }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(showCopied).catch(() => {
+          prompt('Share this link:', url);
+        });
+      } else {
         prompt('Share this link:', url);
-      });
+      }
     }
 
     function setStatus(text, pulsing = false) {
@@ -482,6 +492,7 @@
           <div class="history-item" onclick="handleReplay(${e.id})">
             ${e.badge ? `<img class="history-badge" src="/static/badges/${e.badge}.svg" alt="">` : ''}
             <span class="title">${e.title}</span>
+            <span class="history-date">${formatDate(e.timestamp)}</span>
             <span class="trigger">${e.trigger || 'random'}</span>
           </div>
         `).join('');
