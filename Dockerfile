@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 # System deps for soundfile/librosa
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsndfile1 libatomic1 ffmpeg && rm -rf /var/lib/apt/lists/*
+    libsndfile1 libatomic1 ffmpeg libcairo2 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

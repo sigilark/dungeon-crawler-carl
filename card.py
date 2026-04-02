@@ -8,7 +8,12 @@ import textwrap
 from datetime import datetime
 from io import BytesIO
 
+import cairosvg
 from PIL import Image, ImageDraw, ImageFont
+
+from config import PROJECT_ROOT
+
+BADGE_DIR = PROJECT_ROOT / "static" / "badges"
 
 # Colors matching the web UI
 BG_COLOR = (26, 26, 46)  # #1a1a2e
@@ -30,6 +35,23 @@ BORDER = 3 * SCALE
 def _s(val: int) -> int:
     """Scale a value by the render multiplier."""
     return val * SCALE
+
+
+def _load_badge(badge_id: str, size: int) -> Image.Image | None:
+    """Load an SVG badge, render at given size, and tint gold."""
+    svg_path = BADGE_DIR / f"{badge_id}.svg"
+    if not svg_path.exists():
+        return None
+    png_data = cairosvg.svg2png(url=str(svg_path), output_width=size, output_height=size)
+    badge = Image.open(BytesIO(png_data)).convert("RGBA")
+    # Tint to gold — replace black pixels with gold color
+    pixels = badge.load()
+    for y in range(badge.height):
+        for x in range(badge.width):
+            _r, _g, _b, a = pixels[x, y]
+            if a > 0:
+                pixels[x, y] = (GOLD[0], GOLD[1], GOLD[2], a)
+    return badge
 
 
 def _get_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
@@ -54,6 +76,7 @@ def render_card(achievement: dict) -> bytes:
     Returns PNG bytes.
     """
     title = achievement.get("title", "Unknown Achievement")
+    badge_id = achievement.get("badge", "")
     description = achievement.get("description", "")
     reward = achievement.get("reward", "")
     trigger = achievement.get("trigger", "")
@@ -146,8 +169,14 @@ def render_card(achievement: dict) -> bytes:
     else:
         y += _s(10)
 
-    # Title with star
-    draw.text((x, y), f"\u2605  {title}", fill=GOLD, font=font_title)
+    # Title with badge (or star fallback)
+    badge_size = _s(28)
+    badge_img = _load_badge(badge_id, badge_size) if badge_id else None
+    if badge_img:
+        img.paste(badge_img, (x, y + _s(2)), badge_img)
+        draw.text((x + badge_size + _s(8), y), title, fill=GOLD, font=font_title)
+    else:
+        draw.text((x, y), f"\u2605  {title}", fill=GOLD, font=font_title)
     y += _s(36) + _s(20)
 
     # Description
