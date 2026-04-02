@@ -31,12 +31,18 @@ def _get_db() -> sqlite3.Connection:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
                 title TEXT NOT NULL,
+                badge TEXT,
                 description TEXT NOT NULL,
                 reward TEXT NOT NULL,
                 trigger_text TEXT,
                 audio_files TEXT NOT NULL DEFAULT '[]'
             )
         """)
+        # Add badge column to existing tables (no-op if already exists)
+        import contextlib
+
+        with contextlib.suppress(Exception):
+            conn.execute("ALTER TABLE achievements ADD COLUMN badge TEXT")
         conn.commit()
         _DB_INIT = True
     return conn
@@ -47,6 +53,7 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
         "id": row["id"],
         "timestamp": row["timestamp"],
         "title": row["title"],
+        "badge": row["badge"],
         "description": row["description"],
         "reward": row["reward"],
         "trigger": row["trigger_text"],
@@ -58,11 +65,12 @@ def _local_save(achievement: dict, trigger: str | None, audio_files: list[str] |
     conn = _get_db()
     ts = datetime.now().isoformat()
     cur = conn.execute(
-        "INSERT INTO achievements (timestamp, title, description, reward, trigger_text, audio_files) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO achievements (timestamp, title, badge, description, reward, trigger_text, audio_files) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
             ts,
             achievement.get("title", ""),
+            achievement.get("badge"),
             achievement.get("description", ""),
             achievement.get("reward", ""),
             trigger,
@@ -74,6 +82,7 @@ def _local_save(achievement: dict, trigger: str | None, audio_files: list[str] |
         "id": cur.lastrowid,
         "timestamp": ts,
         "title": achievement.get("title", ""),
+        "badge": achievement.get("badge"),
         "description": achievement.get("description", ""),
         "reward": achievement.get("reward", ""),
         "trigger": trigger,
@@ -132,6 +141,7 @@ def _dynamo_save(achievement: dict, trigger: str | None, audio_files: list[str] 
         "id": new_id,
         "timestamp": ts,
         "title": achievement.get("title", ""),
+        "badge": achievement.get("badge", ""),
         "description": achievement.get("description", ""),
         "reward": achievement.get("reward", ""),
         "trigger_text": trigger or "",

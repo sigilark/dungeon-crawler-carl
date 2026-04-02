@@ -121,12 +121,22 @@
     }
     .card-trigger::before { content: '"'; }
     .card-trigger::after { content: '"'; }
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.8rem;
+    }
+    .card-badge {
+      width: 2rem;
+      height: 2rem;
+      filter: invert(78%) sepia(60%) saturate(500%) hue-rotate(5deg);  /* gold tint */
+      flex-shrink: 0;
+    }
     .card-title {
       color: #f0c040;
       font-size: 1.3rem;
-      margin-bottom: 0.8rem;
     }
-    .card-title::before { content: "\2605  "; }
     .card-desc {
       color: #ccc;
       line-height: 1.6;
@@ -171,6 +181,12 @@
       margin-bottom: 0.3rem;
     }
     .history-item:hover { background: #16213e; }
+    .history-badge {
+      width: 1rem;
+      height: 1rem;
+      filter: invert(78%) sepia(60%) saturate(500%) hue-rotate(5deg);
+      flex-shrink: 0;
+    }
     .history-item .title { color: #f0c040; font-size: 0.85rem; }
     .history-item .trigger { color: #666; font-size: 0.75rem; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .history-empty { color: #555; font-size: 0.85rem; font-style: italic; }
@@ -228,7 +244,10 @@
       <div class="card-date" id="cardDate"></div>
     </div>
     <div class="card-trigger" id="cardTrigger"></div>
-    <div class="card-title" id="cardTitle"></div>
+    <div class="card-title-row">
+      <img class="card-badge" id="cardBadge" src="" alt="" style="display:none;">
+      <div class="card-title" id="cardTitle"></div>
+    </div>
     <div class="card-desc" id="cardDesc"></div>
     <div class="card-reward"><strong>REWARD</strong> <span id="cardReward"></span></div>
     <div class="card-actions" id="cardActions" style="display:none;">
@@ -300,6 +319,14 @@
     function showCard(data) {
       currentAchievementId = data.id;
       document.getElementById('cardDate').textContent = formatDate(data.timestamp);
+      const badgeEl = document.getElementById('cardBadge');
+      if (data.badge) {
+        badgeEl.src = `/static/badges/${data.badge}.svg`;
+        badgeEl.alt = data.badge;
+        badgeEl.style.display = 'block';
+      } else {
+        badgeEl.style.display = 'none';
+      }
       const triggerEl = document.getElementById('cardTrigger');
       if (data.trigger) {
         triggerEl.textContent = data.trigger;
@@ -453,6 +480,7 @@
 
         let html = data.items.map(e => `
           <div class="history-item" onclick="handleReplay(${e.id})">
+            ${e.badge ? `<img class="history-badge" src="/static/badges/${e.badge}.svg" alt="">` : ''}
             <span class="title">${e.title}</span>
             <span class="trigger">${e.trigger || 'random'}</span>
           </div>
