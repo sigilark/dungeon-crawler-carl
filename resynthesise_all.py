@@ -15,7 +15,6 @@ Optional:
 """
 
 import argparse
-import sys
 import time
 
 from archive import load_all, update_audio
