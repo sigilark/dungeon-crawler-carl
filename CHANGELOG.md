@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-04-02
+
+### Prompt Overhaul — Reward Variety & DCC Universe Depth
+
+#### Reward System
+- Expanded from 4 reward formats to 10+ tangible formats — items, stats, skills, and pets now dominate
+- New common formats:
+  - Dungeon loot with a twist ("Cracked Mana Vial. It is 11% full. The 11% is mostly sadness.")
+  - Useless items — irreverent potions and boxes that don't work ("Potion of Mild Optimism. It expired in 2019.")
+  - Stat boosts that hurt — sounds like a buff, isn't ("+6 to Meeting Attendance. This cannot be undone.")
+  - Skill unlocks that are useless — passive skills the dungeon is proud of
+  - Terrible Pet Menagerie assignments — worse than nothing
+  - New quests that are worse than the achievement ("Do Better. Reward: unknown. Timer: always.")
+  - Viewer care packages with wrong contents
+  - Borant Corporation legal notices — alien corporate paperwork
+  - Crafting materials with no known recipe ("Compressed Regret. Tier-2. No one knows what it makes.")
+- Rare punchline formats (≤1 in 5): sponsor reads, brutal system messages, anti-rewards, Princess Donut commentary
+- Added Mordecai commentary as a rare format — dry, resigned, unsurprised
+- Anti-reward example updated to match tone ("None. You did the bare minimum and we do not want to reward that.")
+
+#### Number Variety
+- Explicit instruction to vary numbers every time — single digits, decimals, hundreds, thousands
+- Never repeat the same number twice in a row
+
+#### Examples
+- All 5 examples updated to showcase new reward formats: dungeon loot, painful stat boost, useless skill, terrible pet, crafting materials
+- Removed examples that only demonstrated old formats (system messages, sponsor reads)
+
 ## [1.1.0] - 2026-04-02
 
 ### Renamed to "The Crawl Log"
