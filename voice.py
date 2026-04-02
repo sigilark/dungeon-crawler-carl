@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 from elevenlabs.client import ElevenLabs
+from elevenlabs.types import VoiceSettings
 from pedalboard import Bitcrush, Chorus, Pedalboard, PitchShift, Reverb
 from pedalboard.io import AudioFile
 
@@ -112,6 +113,7 @@ def synthesize(
     filename_hint: str = "",
     volume_ramp: bool = False,
     speed: float = 1.0,
+    el_speed: float = 1.0,
     gain_db: float = 0.0,
     keep_local: bool = False,
 ) -> Path | str:
@@ -134,10 +136,12 @@ def synthesize(
     out_path = OUTPUT_DIR / f"{timestamp}_{slug}.mp3"
 
     # Turbo model — ~40% faster synthesis with comparable quality
+    voice_settings = VoiceSettings(speed=el_speed) if el_speed != 1.0 else None
     audio = client.text_to_speech.convert(
         voice_id=VOICE_ID,
         text=text,
         model_id="eleven_multilingual_v2",
+        voice_settings=voice_settings,
     )
 
     with open(raw_path, "wb") as f:

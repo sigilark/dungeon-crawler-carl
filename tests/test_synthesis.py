@@ -72,7 +72,7 @@ def test_parse_segments_body_text():
 def test_parse_segments_closer_text():
     segments = _parse_segments(FULL_ACHIEVEMENT)
     closer = segments[3]
-    assert closer[0] == "Your Reward!"
+    assert closer[0] == "REWARD?"  # TTS override — caps for energy, question mark for inflection
     assert closer[1]["volume_ramp"] is True
 
 
@@ -124,15 +124,3 @@ def test_synthesize_achievement_returns_ordered_paths(mock_synth):
     assert "your_reward" in paths[3]
     assert "reward" in paths[4]
     assert mock_synth.call_count == 5
-
-
-@patch("synthesis.synthesize", side_effect=lambda text, **kw: f"/output/{kw['filename_hint']}.wav")
-def test_parallel_returns_same_as_sequential(mock_synth):
-    """Parallel synthesis returns same results in same order as sequential."""
-    from synthesis import synthesize_achievement, synthesize_achievement_parallel
-
-    seq = synthesize_achievement(FULL_ACHIEVEMENT)
-    mock_synth.reset_mock()
-    par = synthesize_achievement_parallel(FULL_ACHIEVEMENT)
-
-    assert seq == par

@@ -119,6 +119,7 @@ async def api_generate(req: GenerateRequest):
             "achievement",
             {
                 "id": entry["id"],
+                "timestamp": entry["timestamp"],
                 "title": entry["title"],
                 "description": entry["description"],
                 "reward": entry["reward"],

@@ -98,6 +98,17 @@
       text-transform: uppercase;
       letter-spacing: 2px;
     }
+    .card-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+    .card-header { margin-bottom: 0; }
+    .card-date {
+      color: #666;
+      font-size: 0.7rem;
+    }
     .card-trigger {
       color: #666;
       font-size: 0.75rem;
@@ -202,7 +213,10 @@
   <div class="status" id="status"></div>
 
   <div class="card" id="card">
-    <div class="card-header">Achievement Unlocked</div>
+    <div class="card-top-row">
+      <div class="card-header">Achievement Unlocked</div>
+      <div class="card-date" id="cardDate"></div>
+    </div>
     <div class="card-trigger" id="cardTrigger"></div>
     <div class="card-title" id="cardTitle"></div>
     <div class="card-desc" id="cardDesc"></div>
@@ -266,8 +280,15 @@
       return desc.replace(/^New Achievement!\s*/i, '').replace(/\s*Your Reward!\s*$/i, '').trim();
     }
 
+    function formatDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
     function showCard(data) {
       currentAchievementId = data.id;
+      document.getElementById('cardDate').textContent = formatDate(data.timestamp);
       const triggerEl = document.getElementById('cardTrigger');
       if (data.trigger) {
         triggerEl.textContent = data.trigger;

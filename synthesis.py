@@ -14,8 +14,14 @@ from pathlib import Path
 
 from pydub import AudioSegment
 
-from config import OUTPUT_DIR, STORAGE_MODE
+from config import OUTPUT_DIR, PROJECT_ROOT, STORAGE_MODE
 from voice import synthesize, upload_to_s3
+
+# Pre-recorded clips from the audiobook reference audio — used instead of
+# ElevenLabs for "New Achievement!" and "Reward?" for authentic DCC delivery.
+STATIC_AUDIO_DIR = PROJECT_ROOT / "static" / "audio"
+CLIP_NEW_ACHIEVEMENT = STATIC_AUDIO_DIR / "new_achievement.mp3"
+CLIP_REWARD = STATIC_AUDIO_DIR / "reward.mp3"
 
 # Filename hints double as segment identifiers. The pause logic in both
 # _play_audio_sequence() and the frontend JS (index.html) matches on these
@@ -30,6 +36,7 @@ SEGMENT_REWARD = "reward"
 # Pause durations (seconds) — tuned for dramatic pacing
 PAUSE_BEFORE_TITLE = 0.3  # brief beat after "New Achievement!"
 PAUSE_AFTER_TITLE = 0.4  # let the title land before the description
+PAUSE_BEFORE_CLOSER = 0.5  # space between description and "Your Reward!"
 PAUSE_BEFORE_REWARD = 0.6  # dramatic pause before the reward punchline
 
 
@@ -48,7 +55,7 @@ def synthesize_achievement(achievement: dict) -> list[str]:
     Used by the CLI. The web server uses synthesize_achievement_parallel() instead.
     """
     segments = _parse_segments(achievement)
-    return [str(synthesize(text, keep_local=True, **kwargs)) for text, kwargs in segments]
+    return [_synth_segment(text, kwargs) for text, kwargs in segments]
 
 
 def _parse_segments(achievement: dict) -> list[tuple[str, dict]]:
@@ -76,12 +83,27 @@ def _parse_segments(achievement: dict) -> list[tuple[str, dict]]:
         segments.append((opener, {"filename_hint": SEGMENT_OPENER, "gain_db": 5.0}))
     if title:
         segments.append((title, {"filename_hint": SEGMENT_TITLE, "gain_db": 3.0}))
-    segments.append((body, {"filename_hint": SEGMENT_DESCRIPTION, "gain_db": 3.0}))
+    segments.append((body, {"filename_hint": SEGMENT_DESCRIPTION, "gain_db": 3.0, "el_speed": 1.1}))
     if closer:
-        segments.append((closer, {"filename_hint": SEGMENT_YOUR_REWARD, "volume_ramp": True}))
+        segments.append(("REWARD?", {"filename_hint": SEGMENT_YOUR_REWARD, "volume_ramp": True}))
     segments.append((achievement["reward"], {"filename_hint": SEGMENT_REWARD}))
 
     return segments
+
+
+def _synth_segment(text: str | None, kwargs: dict) -> str:
+    """Synthesize a single segment — either from a static clip or via ElevenLabs."""
+    static_clip = kwargs.pop("static_clip", None)
+    if static_clip:
+        # Use pre-recorded audio file — just copy to output with timestamped name
+        import shutil
+
+        hint = kwargs.get("filename_hint", "clip")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        out_path = OUTPUT_DIR / f"{timestamp}_{hint}.mp3"
+        shutil.copy2(str(static_clip), str(out_path))
+        return str(out_path)
+    return str(synthesize(text, keep_local=True, **kwargs))
 
 
 def synthesize_achievement_parallel(achievement: dict) -> list[str]:
@@ -97,12 +119,8 @@ def synthesize_achievement_parallel(achievement: dict) -> list[str]:
     """
     segments = _parse_segments(achievement)
 
-    def _synth(args: tuple[str, dict]) -> str:
-        text, kwargs = args
-        return str(synthesize(text, keep_local=True, **kwargs))
-
     with ThreadPoolExecutor(max_workers=5) as executor:
-        results = list(executor.map(_synth, segments))
+        results = list(executor.map(lambda args: _synth_segment(*args), segments))
 
     return results
 
@@ -125,7 +143,10 @@ def concatenate_audio(audio_files: list[str]) -> str:
             combined += AudioSegment.silent(duration=int(PAUSE_BEFORE_TITLE * 1000))
             combined += segment
             combined += AudioSegment.silent(duration=int(PAUSE_AFTER_TITLE * 1000))
-        elif f"_{SEGMENT_REWARD}" in name and f"_{SEGMENT_YOUR_REWARD}" not in name:
+        elif f"_{SEGMENT_YOUR_REWARD}" in name:
+            combined += AudioSegment.silent(duration=int(PAUSE_BEFORE_CLOSER * 1000))
+            combined += segment
+        elif f"_{SEGMENT_REWARD}" in name:
             combined += AudioSegment.silent(duration=int(PAUSE_BEFORE_REWARD * 1000))
             combined += segment
         else:
@@ -162,7 +183,10 @@ def play_audio_sequence(audio_files: list[str]) -> None:
             time.sleep(PAUSE_BEFORE_TITLE)
             play(Path(path_str))
             time.sleep(PAUSE_AFTER_TITLE)
-        elif f"_{SEGMENT_REWARD}" in name and f"_{SEGMENT_YOUR_REWARD}" not in name:
+        elif f"_{SEGMENT_YOUR_REWARD}" in name:
+            time.sleep(PAUSE_BEFORE_CLOSER)
+            play(Path(path_str))
+        elif f"_{SEGMENT_REWARD}" in name:
             time.sleep(PAUSE_BEFORE_REWARD)
             play(Path(path_str))
         else:

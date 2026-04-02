@@ -5,6 +5,7 @@ Rendered at 3x scale for sharp text on retina/high-DPI displays.
 """
 
 import textwrap
+from datetime import datetime
 from io import BytesIO
 
 from PIL import Image, ImageDraw, ImageFont
@@ -56,6 +57,7 @@ def render_card(achievement: dict) -> bytes:
     description = achievement.get("description", "")
     reward = achievement.get("reward", "")
     trigger = achievement.get("trigger", "")
+    timestamp = achievement.get("timestamp", "")
 
     # Strip announcer tags from description for display
     desc_clean = description
@@ -118,6 +120,21 @@ def render_card(achievement: dict) -> bytes:
     badge_h = bbox[3] - bbox[1] + _s(10)
     draw.rectangle([x, y, x + badge_w, y + badge_h], fill=GOLD)
     draw.text((x + _s(8), y + _s(4)), badge_text, fill=BG_COLOR, font=font_header)
+
+    # Date — right-aligned on the same line as the badge
+    if timestamp:
+        try:
+            dt = datetime.fromisoformat(timestamp)
+            date_str = dt.strftime("%b %d, %Y")
+        except (ValueError, TypeError):
+            date_str = ""
+        if date_str:
+            date_bbox = draw.textbbox((0, 0), date_str, font=font_watermark)
+            date_w = date_bbox[2] - date_bbox[0]
+            draw.text(
+                (x + INNER_WIDTH - date_w, y + _s(4)), date_str, fill=DIM_TEXT, font=font_watermark
+            )
+
     y += badge_h + _s(10)
 
     # Trigger text (what the user entered)
