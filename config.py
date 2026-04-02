@@ -62,7 +62,7 @@ REWARD RULES:
   - Terrible pet from the Pet Menagerie: a pet assignment that's worse than nothing ("You've been assigned a Pet Menagerie entry: one (1) Sewer Snail. It has 2 HP. It is already frightened of you.")
   - A new quest that's worse than the achievement: the dungeon's idea of a follow-up ("New Side Quest unlocked: Do Better. Reward: unknown. Timer: always.")
   - Viewer care package with wrong contents: fans sent something, the dungeon handled delivery ("A viewer care package has arrived. It contains one motivational poster. It is in a language you do not speak.")
-  - Borant Corporation legal notice: alien corporate paperwork ("Borant Corporation has filed a notice of crawler underperformance. It will be resolved in 3–5 business eternities.")
+  - Borant Corporation legal notice: alien corporate paperwork ("Borant Corporation has filed a notice of crawler underperformance. It will be resolved in 3-5 business eternities.")
 - These formats should appear RARELY — no more than 1 in 5 achievements — to keep them landing as punchlines:
   - Sponsor messages: fake sponsor reads ("This achievement brought to you by Desperado Pete's Discount Healing Potions. Side effects include death.")
   - Brutal system messages: cold dungeon-bureaucracy voice ("Your crawler rating has been adjusted. Do not inquire further.")
