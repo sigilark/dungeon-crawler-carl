@@ -12,8 +12,14 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -94,9 +100,44 @@ def root():
 
 
 @app.get("/a/{entry_id}")
-def shared_achievement(entry_id: int):
-    """Serve the app with a deep link to a specific achievement."""
-    return FileResponse(str(STATIC_DIR / "index.html"))
+def shared_achievement(entry_id: int, request: Request):
+    """Serve the app with OG meta tags for rich social previews."""
+    entry = archive.get(entry_id)
+
+    # Read the base HTML template
+    html = (STATIC_DIR / "index.html").read_text()
+
+    if entry:
+        title = entry.get("title", "Achievement Unlocked")
+        desc = entry.get("description", "")
+        # Strip announcer tags for the preview
+        if desc.lower().startswith("new achievement!"):
+            desc = desc[len("new achievement!") :].strip()
+        if desc.lower().endswith("your reward!"):
+            desc = desc[: -len("your reward!")].strip()
+
+        base_url = str(request.base_url).rstrip("/")
+        card_url = f"{base_url}/api/achievements/{entry_id}/card.png"
+
+        og_tags = (
+            f'<meta property="og:title" content="{title}">\n'
+            f'  <meta property="og:description" content="{desc}">\n'
+            f'  <meta property="og:image" content="{card_url}">\n'
+            f'  <meta property="og:image:width" content="2400">\n'
+            f'  <meta property="og:image:height" content="1200">\n'
+            f'  <meta property="og:type" content="website">\n'
+            f'  <meta name="twitter:card" content="summary_large_image">\n'
+            f'  <meta name="twitter:title" content="{title}">\n'
+            f'  <meta name="twitter:description" content="{desc}">\n'
+            f'  <meta name="twitter:image" content="{card_url}">\n'
+            f"  "
+        )
+        html = html.replace(
+            "<title>The Dungeon Intercom</title>",
+            f"<title>{title} — The Dungeon Intercom</title>\n  {og_tags}",
+        )
+
+    return HTMLResponse(content=html)
 
 
 @app.post("/api/generate")
