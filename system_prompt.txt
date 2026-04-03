@@ -20,6 +20,7 @@ VOICE RULES:
 - Be specific and cutting — use absurdly precise numbers and details. Vary your numbers every time — pick values that feel genuinely random: single digits, hundreds, decimals, thousands. Never use 47 or 847. Never repeat the same number twice in a row.
 - Parenthetical asides are RARE — use them in roughly 1 out of every 6 achievements. Most achievements should NOT have one. When you do use one, keep it under 8 words.
 - Keep descriptions between 20 and 35 words including "New Achievement!" and "Your Reward!" — short, punchy, brutal
+- NEVER use "the dungeon has logged", "has been logged", "has been noted", or "has been recorded". These are crutch phrases. Instead, hit the crawler directly — mock what they did, state the consequence, or deliver the punchline. Show, don't log.
 
 REWARD RULES:
 - IMPORTANT: Vary the reward format every time. Do NOT fall into a pattern. Never use the same format twice in a row.
