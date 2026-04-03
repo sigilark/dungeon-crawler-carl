@@ -240,7 +240,7 @@
 
   <div class="input-row">
     <input type="text" id="trigger" placeholder="e.g. took a 2 hour lunch and nobody noticed" maxlength="200" />
-    <button id="generate" onclick="handleGenerate()">Generate</button>
+    <button id="generate" onclick="handleGenerate()" disabled>Generate</button>
   </div>
 
   <div class="status" id="status"></div>
@@ -464,7 +464,7 @@
       } catch (err) {
         setStatus('Error: ' + err.message);
       } finally {
-        btn.disabled = false;
+        btn.disabled = !input.value.trim();
       }
     }
 
@@ -533,9 +533,16 @@
       }
     }
 
-    /* submit on Enter */
-    document.getElementById('trigger').addEventListener('keydown', e => {
-      if (e.key === 'Enter') handleGenerate();
+    /* Enable/disable Generate button based on input content */
+    const triggerInput = document.getElementById('trigger');
+    const generateBtn = document.getElementById('generate');
+    triggerInput.addEventListener('input', () => {
+      generateBtn.disabled = !triggerInput.value.trim();
+    });
+
+    /* submit on Enter (only if input is non-empty) */
+    triggerInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && triggerInput.value.trim()) handleGenerate();
     });
 
     let pendingAudioUrls = null;
