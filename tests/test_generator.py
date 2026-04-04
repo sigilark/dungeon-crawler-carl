@@ -83,6 +83,8 @@ def test_generate_raises_after_max_failures(mock_cls):
         _mock_response("bad json 1"),
         _mock_response("bad json 2"),
         _mock_response("bad json 3"),
+        _mock_response("bad json 4"),
+        _mock_response("bad json 5"),
     ]
 
     with pytest.raises(ValueError, match="Failed to parse"):
@@ -160,6 +162,28 @@ def test_generate_retries_on_banned_phrases(mock_cls):
     result = generate()
     assert result == clean
     assert client.messages.create.call_count == 2
+
+
+@patch("generator.ANTHROPIC_API_KEY", "sk-test")
+@patch("generator.anthropic.Anthropic")
+def test_generate_strips_banned_phrases_after_exhausting_retries(mock_cls):
+    """generate() strips sentences with banned phrases if all retries fail."""
+    from generator import generate
+
+    banned = {
+        "title": "Test",
+        "description": "New Achievement! You did something. The dungeon respects your effort. Your Reward!",
+        "reward": "A prize.",
+    }
+
+    client = MagicMock()
+    mock_cls.return_value = client
+    client.messages.create.return_value = _mock_response(json.dumps(banned))
+
+    result = generate()
+    assert "The dungeon" not in result["description"]
+    assert "New Achievement!" in result["description"]
+    assert "Your Reward!" in result["description"]
 
 
 @patch("generator.ANTHROPIC_API_KEY", "sk-test")

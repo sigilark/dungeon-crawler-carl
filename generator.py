@@ -11,7 +11,7 @@ BANNED_PHRASES = re.compile(
     r"|has been logged|has been noted|has been recorded|has been documented|has been flagged",
     re.IGNORECASE,
 )
-MAX_RETRIES = 3
+MAX_RETRIES = 5
 
 
 def generate(trigger: str | None = None) -> dict:
@@ -48,9 +48,8 @@ def generate(trigger: str | None = None) -> dict:
     def has_banned_content(achievement: dict) -> bool:
         """Check if any field contains banned numbers or phrases."""
         text = " ".join(str(v) for v in achievement.values())
-        return bool(BANNED_NUMBERS.search(text)) or bool(
-            BANNED_PHRASES.search(achievement.get("description", ""))
-        )
+        desc_and_reward = achievement.get("description", "") + " " + achievement.get("reward", "")
+        return bool(BANNED_NUMBERS.search(text)) or bool(BANNED_PHRASES.search(desc_and_reward))
 
     for attempt in range(MAX_RETRIES):
         raw = call_api()
@@ -70,4 +69,7 @@ def generate(trigger: str | None = None) -> dict:
     for key in ("title", "description", "reward"):
         if key in achievement:
             achievement[key] = BANNED_NUMBERS.sub("48", achievement[key])
+            # Strip sentences containing banned phrases
+            sentences = re.split(r"(?<=[.!?])\s+", achievement[key])
+            achievement[key] = " ".join(s for s in sentences if not BANNED_PHRASES.search(s))
     return achievement
