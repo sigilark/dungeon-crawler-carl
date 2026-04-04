@@ -132,3 +132,29 @@ def test_shared_achievement_xss_escaped(mock_gen, mock_synth, client):
     # The raw XSS payload should NOT appear in meta content attributes
     assert 'content="<script>' not in res.text
     assert 'content="<img onerror' not in res.text
+
+
+@patch("server.synthesize_achievement_parallel", return_value=[])
+@patch("server.generate", side_effect=RuntimeError("unexpected"))
+def test_generate_generic_exception(mock_gen, mock_synth, client):
+    """POST /api/generate returns 502 on unexpected exceptions."""
+    res = client.post("/api/generate", json={"trigger": "test"})
+    assert res.status_code == 502
+    assert "API error" in res.json()["detail"]
+
+
+@patch("server.synthesize_achievement_parallel", return_value=[])
+@patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
+def test_achievement_card_renders(mock_gen, mock_synth, client):
+    """GET /api/achievements/{id}/card.png returns a PNG image."""
+    client.post("/api/generate", json={"trigger": "test"})
+    res = client.get("/api/achievements/1/card.png")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "image/png"
+    assert res.content[:4] == b"\x89PNG"
+
+
+def test_achievement_card_not_found(client):
+    """GET /api/achievements/{id}/card.png returns 404 for missing ID."""
+    res = client.get("/api/achievements/999/card.png")
+    assert res.status_code == 404

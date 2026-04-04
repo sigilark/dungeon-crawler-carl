@@ -151,3 +151,32 @@ def test_negative_page_clamped(client):
     res = client.get("/api/achievements?page=-5")
     data = res.json()
     assert data["page"] == 0
+
+
+@patch("server.synthesize_achievement_parallel", return_value=[])
+@patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
+def test_daily_challenge_stats_endpoint(mock_gen, mock_synth, client):
+    """GET /api/admin/daily-challenge returns participation stats."""
+    # Generate a daily challenge achievement
+    client.post(
+        "/api/generate",
+        json={"trigger": "[Daily Challenge] Do something questionable"},
+    )
+    # Generate a normal achievement
+    client.post("/api/generate", json={"trigger": "normal trigger"})
+
+    res = client.get("/api/admin/daily-challenge")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_participations"] == 1
+    assert data["days_active"] == 1
+    assert len(data["by_date"]) == 1
+
+
+def test_daily_challenge_stats_empty(client):
+    """GET /api/admin/daily-challenge returns zeros when no challenges."""
+    res = client.get("/api/admin/daily-challenge")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_participations"] == 0
+    assert data["days_active"] == 0

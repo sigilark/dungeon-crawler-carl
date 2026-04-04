@@ -24,7 +24,8 @@ DIM_TEXT = (136, 136, 136)  # #888888
 BORDER_COLOR = (240, 192, 64)  # #f0c040
 DIVIDER_COLOR = (51, 51, 51)  # #333333
 
-# Rarity tier colors — border and accent
+# Rarity tier colors — used for border, badge tint, title, and REWARD label.
+# Must match the CSS variables in static/index.html (.rarity-bronze, etc.)
 RARITY_COLORS = {
     "bronze": (205, 127, 50),  # #cd7f32
     "silver": (192, 192, 192),  # #c0c0c0

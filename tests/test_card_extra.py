@@ -90,3 +90,51 @@ def test_card_with_all_fields():
     assert img.format == "PNG"
     assert img.width >= 2400
     assert img.height > 500
+
+
+def test_card_rarity_bronze():
+    """Bronze rarity card renders with bronze-tinted border."""
+    data = render_card(
+        {
+            "title": "Test",
+            "badge": "snail",
+            "rarity": "bronze",
+            "description": "Test desc.",
+            "reward": "Test reward.",
+        }
+    )
+    img = Image.open(BytesIO(data))
+    # Check top-left border pixel is bronze-ish (205, 127, 50)
+    r, g, b = img.getpixel((0, 0))[:3]
+    assert r > 150 and g < 180 and b < 100
+
+
+def test_card_rarity_legendary():
+    """Legendary rarity card renders with pink border."""
+    data = render_card(
+        {
+            "title": "Test",
+            "badge": "skull",
+            "rarity": "legendary",
+            "description": "Test desc.",
+            "reward": "Test reward.",
+        }
+    )
+    img = Image.open(BytesIO(data))
+    # Check border pixel is legendary pink (255, 110, 199)
+    r, _g, b = img.getpixel((0, 0))[:3]
+    assert r > 200 and b > 150
+
+
+def test_card_rarity_defaults_to_bronze():
+    """Card without rarity field defaults to bronze."""
+    data = render_card(
+        {
+            "title": "Test",
+            "description": "Test desc.",
+            "reward": "Test reward.",
+        }
+    )
+    img = Image.open(BytesIO(data))
+    r, g, b = img.getpixel((0, 0))[:3]
+    assert r > 150 and g < 180 and b < 100

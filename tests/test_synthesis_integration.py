@@ -21,6 +21,13 @@ FULL_ACHIEVEMENT = {
     "reward": "The dungeon is mildly impressed.",
 }
 
+LEGENDARY_ACHIEVEMENT = {
+    "title": "Test Title",
+    "rarity": "legendary",
+    "description": "New Achievement! You did something incredible. Your Reward!",
+    "reward": "Legendary prize.",
+}
+
 
 def test_parse_segments_produces_correct_count():
     """Full achievement with all parts produces 5 segments."""
@@ -46,6 +53,36 @@ def test_description_has_el_speed():
     segments = _parse_segments(FULL_ACHIEVEMENT)
     desc = next(s for s in segments if s[1]["filename_hint"] == SEGMENT_DESCRIPTION)
     assert desc[1]["el_speed"] == 1.15
+
+
+def test_legendary_opener_has_extra_gain():
+    """Gold/Legendary opener gets +7dB instead of +5dB."""
+    segments = _parse_segments(LEGENDARY_ACHIEVEMENT)
+    opener = next(s for s in segments if s[1]["filename_hint"] == SEGMENT_OPENER)
+    assert opener[1]["gain_db"] == 7.0
+
+
+def test_legendary_title_has_extra_gain():
+    """Gold/Legendary title gets +5dB instead of +3dB."""
+    segments = _parse_segments(LEGENDARY_ACHIEVEMENT)
+    title = next(s for s in segments if s[1]["filename_hint"] == SEGMENT_TITLE)
+    assert title[1]["gain_db"] == 5.0
+
+
+def test_legendary_description_slower():
+    """Gold/Legendary description uses 1.05x speed instead of 1.15x."""
+    segments = _parse_segments(LEGENDARY_ACHIEVEMENT)
+    desc = next(s for s in segments if s[1]["filename_hint"] == SEGMENT_DESCRIPTION)
+    assert desc[1]["el_speed"] == 1.05
+
+
+def test_bronze_uses_default_gains():
+    """Bronze rarity uses default gain levels."""
+    segments = _parse_segments(FULL_ACHIEVEMENT)
+    opener = next(s for s in segments if s[1]["filename_hint"] == SEGMENT_OPENER)
+    title = next(s for s in segments if s[1]["filename_hint"] == SEGMENT_TITLE)
+    assert opener[1]["gain_db"] == 5.0
+    assert title[1]["gain_db"] == 3.0
 
 
 def test_closer_uses_reward_override():

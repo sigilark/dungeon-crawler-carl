@@ -295,7 +295,12 @@ def api_reward_distribution():
 
 @app.get("/api/admin/daily-challenge")
 def api_daily_challenge_stats():
-    """Return daily challenge participation stats."""
+    """Return daily challenge participation stats.
+
+    The frontend prefixes daily challenge triggers with '[Daily Challenge] '
+    (see static/index.html useDailyChallenge()). We detect participation by
+    checking for this prefix in the trigger field.
+    """
     entries = archive.load_all()
     challenge_entries = [
         e for e in entries if (e.get("trigger") or "").startswith("[Daily Challenge]")

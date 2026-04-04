@@ -135,6 +135,21 @@ curl https://crawl.sigilark.com/api/admin/reward-distribution
 ```
 If any format exceeds 40%, consider reviewing the system prompt. Run `python scripts/check_reward_distribution.py --count 20` locally to validate with fresh samples.
 
+### Daily challenge participation
+Check how many users are engaging with the daily challenge:
+```bash
+curl https://crawl.sigilark.com/api/admin/daily-challenge
+```
+
+### Generator retry frequency
+Check CloudWatch logs for banned content retries:
+```bash
+aws logs filter-log-events --log-group-name "$LOG_GROUP" \
+  --filter-pattern "Banned content detected" --limit 20 \
+  --query 'events[*].message' --output text
+```
+Zero retries is ideal (Streisand fix working). Frequent retries may indicate the prompt needs tuning.
+
 ### Claude API errors
 Check if the API key is valid and has credits:
 ```bash

@@ -81,7 +81,8 @@ def _parse_segments(achievement: dict) -> list[tuple[str, dict]]:
 
     title = achievement.get("title", "")
 
-    # Gold/Legendary get extra boost on opener and slower, weightier delivery
+    # Gold/Legendary get louder opener/title and slower body for gravitas.
+    # The extra dB and reduced speed make rare achievements feel weightier in TTS.
     is_epic = rarity in ("gold", "legendary")
     opener_gain = 7.0 if is_epic else 5.0
     title_gain = 5.0 if is_epic else 3.0

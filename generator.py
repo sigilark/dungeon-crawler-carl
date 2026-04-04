@@ -8,6 +8,8 @@ from config import ANTHROPIC_API_KEY, MAX_TOKENS, MODEL, SYSTEM_PROMPT
 
 logger = logging.getLogger("achievement-intercom")
 
+# Content enforcement — these are NOT in the prompt (Streisand effect made it worse).
+# The prompt uses only positive guidance; the code silently rejects and retries.
 BANNED_NUMBERS = re.compile(r"\b847\b|\b47\b")
 BANNED_PHRASES = re.compile(
     r"The dungeon\s+\w+|The sponsors\s+\w+|The security team\s+\w+"
@@ -75,7 +77,8 @@ def generate(trigger: str | None = None) -> dict:
     for key in ("title", "description", "reward"):
         if key in achievement:
             achievement[key] = BANNED_NUMBERS.sub("48", achievement[key])
-            # Strip sentences containing banned phrases
+            # Strip entire sentences containing banned phrases — splits on sentence
+            # boundaries (.!?) so "New Achievement!" and "Your Reward!" stay intact
             sentences = re.split(r"(?<=[.!?])\s+", achievement[key])
             achievement[key] = " ".join(s for s in sentences if not BANNED_PHRASES.search(s))
     return achievement
