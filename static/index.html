@@ -85,15 +85,93 @@
       padding: 1.5rem;
       margin-bottom: 2rem;
       display: none;
-      animation: fadeIn 0.4s ease-out;
+      position: relative;
+      overflow: hidden;
     }
-    .card.visible { display: block; }
+    .card.visible {
+      display: block;
+      animation: cardReveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
 
-    /* Rarity tier border colors */
+    /* Slide up with overshoot bounce */
+    @keyframes cardReveal {
+      0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+      60% { opacity: 1; transform: translateY(-4px) scale(1.01); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Rarity tier border colors and glow */
     .card.rarity-bronze { border-color: #cd7f32; }
     .card.rarity-silver { border-color: #c0c0c0; }
-    .card.rarity-gold { border-color: #f0c040; box-shadow: 0 0 12px rgba(240, 192, 64, 0.3); }
-    .card.rarity-legendary { border-color: #ff6ec7; box-shadow: 0 0 20px rgba(255, 110, 199, 0.4); }
+    .card.rarity-gold { border-color: #f0c040; }
+    .card.rarity-legendary { border-color: #ff6ec7; }
+
+    /* Glow pulse on reveal — rarity-colored */
+    .card.visible.rarity-gold {
+      animation: cardReveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), glowGold 1.5s ease-out 0.3s;
+    }
+    .card.visible.rarity-legendary {
+      animation: cardReveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), glowLegendary 2s ease-out 0.3s;
+    }
+    .card.rarity-gold { box-shadow: 0 0 12px rgba(240, 192, 64, 0.3); }
+    .card.rarity-legendary { box-shadow: 0 0 20px rgba(255, 110, 199, 0.4); }
+
+    @keyframes glowGold {
+      0% { box-shadow: 0 0 5px rgba(240, 192, 64, 0.2); }
+      40% { box-shadow: 0 0 30px rgba(240, 192, 64, 0.6), 0 0 60px rgba(240, 192, 64, 0.2); }
+      100% { box-shadow: 0 0 12px rgba(240, 192, 64, 0.3); }
+    }
+    @keyframes glowLegendary {
+      0% { box-shadow: 0 0 5px rgba(255, 110, 199, 0.2); }
+      30% { box-shadow: 0 0 40px rgba(255, 110, 199, 0.7), 0 0 80px rgba(255, 110, 199, 0.3); }
+      60% { box-shadow: 0 0 25px rgba(255, 110, 199, 0.5), 0 0 50px rgba(200, 80, 255, 0.2); }
+      100% { box-shadow: 0 0 20px rgba(255, 110, 199, 0.4); }
+    }
+
+    /* Sparkle particles for Gold/Legendary — CSS-only */
+    .card.rarity-gold.visible::before,
+    .card.rarity-legendary.visible::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 20% 15%, rgba(255, 255, 200, 0.8) 0%, transparent 100%),
+        radial-gradient(1px 1px at 80% 25%, rgba(255, 255, 200, 0.6) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 50% 10%, rgba(255, 255, 200, 0.9) 0%, transparent 100%),
+        radial-gradient(1px 1px at 15% 80%, rgba(255, 255, 200, 0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 70%, rgba(255, 255, 200, 0.7) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 60% 90%, rgba(255, 255, 200, 0.6) 0%, transparent 100%);
+      animation: sparkle 2s ease-out 0.4s both;
+    }
+    .card.rarity-legendary.visible::before {
+      background-image:
+        radial-gradient(1.5px 1.5px at 20% 15%, rgba(255, 180, 255, 0.9) 0%, transparent 100%),
+        radial-gradient(1px 1px at 80% 25%, rgba(200, 150, 255, 0.7) 0%, transparent 100%),
+        radial-gradient(2px 2px at 50% 10%, rgba(255, 200, 255, 1) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 15% 80%, rgba(255, 150, 220, 0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 70%, rgba(200, 180, 255, 0.8) 0%, transparent 100%),
+        radial-gradient(2px 2px at 60% 90%, rgba(255, 180, 255, 0.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 35% 50%, rgba(255, 220, 255, 0.9) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 70% 45%, rgba(200, 150, 255, 0.8) 0%, transparent 100%);
+    }
+    @keyframes sparkle {
+      0% { opacity: 0; }
+      30% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* Staggered content reveal */
+    .card.visible .card-top-row { animation: contentFade 0.4s ease-out 0.15s both; }
+    .card.visible .card-trigger { animation: contentFade 0.4s ease-out 0.25s both; }
+    .card.visible .card-title-row { animation: contentFade 0.5s ease-out 0.3s both; }
+    .card.visible .card-desc { animation: contentFade 0.4s ease-out 0.45s both; }
+    .card.visible .card-reward { animation: contentFade 0.4s ease-out 0.6s both; }
+    .card.visible .card-actions { animation: contentFade 0.3s ease-out 0.75s both; }
+    @keyframes contentFade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .rarity-label {
       font-size: 0.65rem;
@@ -106,7 +184,6 @@
     .rarity-silver .rarity-label { color: #c0c0c0; }
     .rarity-gold .rarity-label { color: #f0c040; }
     .rarity-legendary .rarity-label { color: #ff6ec7; }
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
     .card-header {
       background: #f0c040;
