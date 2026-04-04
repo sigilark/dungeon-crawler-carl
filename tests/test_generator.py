@@ -56,7 +56,7 @@ def test_generate_random(mock_cls):
 @patch("generator.ANTHROPIC_API_KEY", "sk-test")
 @patch("generator.anthropic.Anthropic")
 def test_generate_retries_on_bad_json(mock_cls):
-    """generate() retries once when the first response is not valid JSON."""
+    """generate() retries when the first response is not valid JSON."""
     from generator import generate
 
     client = MagicMock()
@@ -73,8 +73,8 @@ def test_generate_retries_on_bad_json(mock_cls):
 
 @patch("generator.ANTHROPIC_API_KEY", "sk-test")
 @patch("generator.anthropic.Anthropic")
-def test_generate_raises_after_two_failures(mock_cls):
-    """generate() raises ValueError after two consecutive JSON parse failures."""
+def test_generate_raises_after_max_failures(mock_cls):
+    """generate() raises ValueError after MAX_RETRIES consecutive JSON parse failures."""
     from generator import generate
 
     client = MagicMock()
@@ -82,10 +82,59 @@ def test_generate_raises_after_two_failures(mock_cls):
     client.messages.create.side_effect = [
         _mock_response("bad json 1"),
         _mock_response("bad json 2"),
+        _mock_response("bad json 3"),
     ]
 
     with pytest.raises(ValueError, match="Failed to parse"):
         generate()
+
+
+@patch("generator.ANTHROPIC_API_KEY", "sk-test")
+@patch("generator.anthropic.Anthropic")
+def test_generate_retries_on_banned_numbers(mock_cls):
+    """generate() retries when response contains banned numbers 47 or 847."""
+    from generator import generate
+
+    banned = {
+        "title": "Floor 47 Incident",
+        "description": "New Achievement! You fell 847 times. Your Reward!",
+        "reward": "+47 to Shame",
+    }
+    clean = SAMPLE_ACHIEVEMENT
+
+    client = MagicMock()
+    mock_cls.return_value = client
+    client.messages.create.side_effect = [
+        _mock_response(json.dumps(banned)),
+        _mock_response(json.dumps(clean)),
+    ]
+
+    result = generate()
+    assert result == clean
+    assert client.messages.create.call_count == 2
+
+
+@patch("generator.ANTHROPIC_API_KEY", "sk-test")
+@patch("generator.anthropic.Anthropic")
+def test_generate_replaces_banned_after_exhausting_retries(mock_cls):
+    """generate() replaces banned numbers with 48 if all retries still contain them."""
+    from generator import generate
+
+    banned = {
+        "title": "Test",
+        "description": "New Achievement! You waited 47 hours. Your Reward!",
+        "reward": "+847 to Nothing",
+    }
+
+    client = MagicMock()
+    mock_cls.return_value = client
+    client.messages.create.return_value = _mock_response(json.dumps(banned))
+
+    result = generate()
+    assert "47" not in result["description"]
+    assert "847" not in result["reward"]
+    assert "48" in result["description"]
+    assert "48" in result["reward"]
 
 
 @patch("generator.ANTHROPIC_API_KEY", "")

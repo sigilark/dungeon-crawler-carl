@@ -5,6 +5,9 @@ import anthropic
 
 from config import ANTHROPIC_API_KEY, MAX_TOKENS, MODEL, SYSTEM_PROMPT
 
+BANNED_NUMBERS = re.compile(r"\b847\b|\b47\b")
+MAX_RETRIES = 3
+
 
 def generate(trigger: str | None = None) -> dict:
     """
@@ -37,16 +40,27 @@ def generate(trigger: str | None = None) -> dict:
         match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
         return match.group(1) if match else text
 
-    raw = call_api()
+    def has_banned_numbers(achievement: dict) -> bool:
+        """Check if any field contains banned numbers (47 or 847)."""
+        text = " ".join(str(v) for v in achievement.values())
+        return bool(BANNED_NUMBERS.search(text))
 
-    try:
-        return json.loads(strip_markdown(raw))
-    except json.JSONDecodeError:
-        # Retry once
+    for attempt in range(MAX_RETRIES):
         raw = call_api()
         try:
-            return json.loads(strip_markdown(raw))
-        except json.JSONDecodeError as e:
+            achievement = json.loads(strip_markdown(raw))
+        except json.JSONDecodeError:
+            if attempt < MAX_RETRIES - 1:
+                continue
             raise ValueError(
-                f"Failed to parse achievement JSON after two attempts.\nRaw response:\n{raw}"
-            ) from e
+                f"Failed to parse achievement JSON after {MAX_RETRIES} attempts.\nRaw response:\n{raw}"
+            ) from None
+        if not has_banned_numbers(achievement):
+            return achievement
+        # Banned number found — retry
+
+    # All retries contained banned numbers; strip them as a last resort
+    for key in ("title", "description", "reward"):
+        if key in achievement:
+            achievement[key] = BANNED_NUMBERS.sub("48", achievement[key])
+    return achievement
