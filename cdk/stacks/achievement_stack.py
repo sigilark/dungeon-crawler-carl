@@ -387,7 +387,7 @@ class AchievementStack(Stack):
                 log_group_names=[log_group.log_group_name],
                 query_lines=[
                     "fields @timestamp, @message",
-                    'filter @message like /Banned content detected|Generation succeeded on attempt/',
+                    "filter @message like /Banned content detected|Generation succeeded on attempt/",
                     "sort @timestamp desc",
                     "limit 50",
                 ],
