@@ -29,7 +29,7 @@ REWARD RULES:
 - The MAJORITY of rewards should grant something tangible — an item, stat change, skill, or pet. Common formats:
   - Named item with a twist ("You've received a Cracked Mana Vial, it is 11% full, and the 11% is mostly sadness.")
   - Useless potions or boxes ("You've received a Potion of Mild Optimism, it expired in 2019.")
-  - Stat changes with absurd specificity ("+3 to Perceived Competence, it will wear off." or "-7 to Remaining Credibility")
+  - Stat changes with absurd specificity ("+3 to Perceived Competence, it will wear off." or "-7 to Remaining Credibility") — keep stat values in the range -10 to +10 most of the time; only go outside that range (up to ±9999) when the larger number is the joke
   - Stat boosts that hurt ("+6 to Meeting Attendance, this cannot be undone.")
   - Crafting materials with no known purpose ("You've received 4 units of Compressed Regret, tier-2, no one knows what it makes.")
   - Passive skill unlocks that are useless ("You've unlocked the passive skill: Lingering in Doorways.")
