@@ -62,6 +62,7 @@ def synthesize_achievement(achievement: dict) -> list[str]:
 def _parse_segments(achievement: dict) -> list[tuple[str, dict]]:
     """Parse achievement text into a list of (text, synth_kwargs) tuples."""
     desc = achievement["description"]
+    rarity = achievement.get("rarity", "bronze")
     segments: list[tuple[str, dict]] = []
 
     opener = None
@@ -80,12 +81,18 @@ def _parse_segments(achievement: dict) -> list[tuple[str, dict]]:
 
     title = achievement.get("title", "")
 
+    # Gold/Legendary get extra boost on opener and slower, weightier delivery
+    is_epic = rarity in ("gold", "legendary")
+    opener_gain = 7.0 if is_epic else 5.0
+    title_gain = 5.0 if is_epic else 3.0
+    body_speed = 1.05 if is_epic else 1.15
+
     if opener:
-        segments.append((opener, {"filename_hint": SEGMENT_OPENER, "gain_db": 5.0}))
+        segments.append((opener, {"filename_hint": SEGMENT_OPENER, "gain_db": opener_gain}))
     if title:
-        segments.append((title, {"filename_hint": SEGMENT_TITLE, "gain_db": 3.0}))
+        segments.append((title, {"filename_hint": SEGMENT_TITLE, "gain_db": title_gain}))
     segments.append(
-        (body, {"filename_hint": SEGMENT_DESCRIPTION, "gain_db": 3.0, "el_speed": 1.15})
+        (body, {"filename_hint": SEGMENT_DESCRIPTION, "gain_db": 3.0, "el_speed": body_speed})
     )
     if closer:
         segments.append(("REWARD?", {"filename_hint": SEGMENT_YOUR_REWARD, "volume_ramp": True}))

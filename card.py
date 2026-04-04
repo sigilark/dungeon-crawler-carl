@@ -24,6 +24,14 @@ DIM_TEXT = (136, 136, 136)  # #888888
 BORDER_COLOR = (240, 192, 64)  # #f0c040
 DIVIDER_COLOR = (51, 51, 51)  # #333333
 
+# Rarity tier colors — border and accent
+RARITY_COLORS = {
+    "bronze": (205, 127, 50),  # #cd7f32
+    "silver": (192, 192, 192),  # #c0c0c0
+    "gold": (240, 192, 64),  # #f0c040
+    "legendary": (255, 110, 199),  # #ff6ec7
+}
+
 # Render at 3x for crisp text — final image is 2400px wide
 SCALE = 3
 CARD_WIDTH = 800 * SCALE
@@ -37,20 +45,20 @@ def _s(val: int) -> int:
     return val * SCALE
 
 
-def _load_badge(badge_id: str, size: int) -> Image.Image | None:
-    """Load an SVG badge, render at given size, and tint gold."""
+def _load_badge(badge_id: str, size: int, tint: tuple[int, int, int] = GOLD) -> Image.Image | None:
+    """Load an SVG badge, render at given size, and tint to the specified color."""
     svg_path = BADGE_DIR / f"{badge_id}.svg"
     if not svg_path.exists():
         return None
     png_data = cairosvg.svg2png(url=str(svg_path), output_width=size, output_height=size)
     badge = Image.open(BytesIO(png_data)).convert("RGBA")
-    # Tint to gold — replace black pixels with gold color
+    # Tint — replace black pixels with the specified color
     pixels = badge.load()
     for y in range(badge.height):
         for x in range(badge.width):
             _r, _g, _b, a = pixels[x, y]
             if a > 0:
-                pixels[x, y] = (GOLD[0], GOLD[1], GOLD[2], a)
+                pixels[x, y] = (tint[0], tint[1], tint[2], a)
     return badge
 
 
@@ -77,10 +85,14 @@ def render_card(achievement: dict) -> bytes:
     """
     title = achievement.get("title", "Unknown Achievement")
     badge_id = achievement.get("badge", "")
+    rarity = achievement.get("rarity", "bronze")
     description = achievement.get("description", "")
     reward = achievement.get("reward", "")
     trigger = achievement.get("trigger", "")
     timestamp = achievement.get("timestamp", "")
+
+    # Rarity determines border and accent color
+    accent = RARITY_COLORS.get(rarity, RARITY_COLORS["bronze"])
 
     # Strip announcer tags from description for display
     desc_clean = description
@@ -125,10 +137,10 @@ def render_card(achievement: dict) -> bytes:
         + CARD_PADDING
     )
 
-    # Create image with gold border
+    # Create image with rarity-colored border
     img_width = CARD_WIDTH + BORDER * 2
     img_height = card_height + BORDER * 2
-    img = Image.new("RGB", (img_width, img_height), BORDER_COLOR)
+    img = Image.new("RGB", (img_width, img_height), accent)
     card = Image.new("RGB", (CARD_WIDTH, card_height), CARD_BG)
     img.paste(card, (BORDER, BORDER))
 
@@ -141,8 +153,12 @@ def render_card(achievement: dict) -> bytes:
     bbox = draw.textbbox((0, 0), badge_text, font=font_header)
     badge_w = bbox[2] - bbox[0] + _s(16)
     badge_h = bbox[3] - bbox[1] + _s(10)
-    draw.rectangle([x, y, x + badge_w, y + badge_h], fill=GOLD)
+    draw.rectangle([x, y, x + badge_w, y + badge_h], fill=accent)
     draw.text((x + _s(8), y + _s(4)), badge_text, fill=BG_COLOR, font=font_header)
+
+    # Rarity label — right of the header badge
+    rarity_label = rarity.upper()
+    draw.text((x + badge_w + _s(10), y + _s(4)), rarity_label, fill=accent, font=font_header)
 
     # Date — right-aligned on the same line as the badge
     if timestamp:
@@ -171,12 +187,12 @@ def render_card(achievement: dict) -> bytes:
 
     # Title with badge (or star fallback)
     badge_size = _s(28)
-    badge_img = _load_badge(badge_id, badge_size) if badge_id else None
+    badge_img = _load_badge(badge_id, badge_size, tint=accent) if badge_id else None
     if badge_img:
         img.paste(badge_img, (x, y + _s(2)), badge_img)
-        draw.text((x + badge_size + _s(8), y), title, fill=GOLD, font=font_title)
+        draw.text((x + badge_size + _s(8), y), title, fill=accent, font=font_title)
     else:
-        draw.text((x, y), f"\u2605  {title}", fill=GOLD, font=font_title)
+        draw.text((x, y), f"\u2605  {title}", fill=accent, font=font_title)
     y += _s(36) + _s(20)
 
     # Description
@@ -190,7 +206,7 @@ def render_card(achievement: dict) -> bytes:
     y += _s(2) + _s(20)
 
     # Reward
-    draw.text((x, y), "REWARD", fill=GOLD, font=font_label)
+    draw.text((x, y), "REWARD", fill=accent, font=font_label)
     y += _s(24)
     for line in reward_lines:
         draw.text((x + _s(4), y), line, fill=TEXT_COLOR, font=font_reward)

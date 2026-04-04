@@ -291,3 +291,22 @@ def serve_audio(filename: str):
 def api_reward_distribution():
     """Return reward format distribution stats across all achievements."""
     return archive.format_distribution()
+
+
+@app.get("/api/admin/daily-challenge")
+def api_daily_challenge_stats():
+    """Return daily challenge participation stats."""
+    entries = archive.load_all()
+    challenge_entries = [
+        e for e in entries if (e.get("trigger") or "").startswith("[Daily Challenge]")
+    ]
+    # Group by date
+    by_date: dict[str, int] = {}
+    for e in challenge_entries:
+        date = e["timestamp"][:10]
+        by_date[date] = by_date.get(date, 0) + 1
+    return {
+        "total_participations": len(challenge_entries),
+        "days_active": len(by_date),
+        "by_date": by_date,
+    }

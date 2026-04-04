@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-04-04
+
+### Rarity Tiers
+- Achievements assigned Bronze/Silver/Gold/Legendary rarity based on event absurdity
+- Web UI: rarity-colored card borders with glow effects (Gold/Legendary), colored dots in history
+- Card PNG renderer: rarity-colored borders, badge tints, accent colors, and rarity label
+- Audio: Gold/Legendary get louder opener (+7dB), boosted title (+5dB), and slower body delivery (1.05x vs 1.15x)
+- Stored in DB with backfill for older entries
+
+### Daily Challenge
+- New daily prompt banner on homepage — one challenge per day from a pool of 31 prompts
+- Deterministic by date (no backend needed), click to pre-fill trigger with `[Daily Challenge]` prefix
+- Admin endpoint: `GET /api/admin/daily-challenge` — tracks participation counts by date
+
+### Content Quality
+- "Your mom" jokes added as rare reward format and woven into descriptions (~1 in 6)
+- Banned content enforcement: generator retries up to 5 times if output contains "The dungeon [verb]", "The sponsors [verb]", or numbers 47/847
+- Fallback strips offending sentences if all retries exhausted
+- Streisand effect fix: removed all negative instructions (banned numbers/phrases) from prompt — positive guidance only, code enforces silently
+- Retry logging added to monitor enforcement frequency in CloudWatch
+
+### UI Improvements
+- Random trigger suggestions rotate placeholder text from 20 funny examples
+- Generate button disabled when input is empty (prevents empty submissions)
+- Input validation: Enter key blocked when empty, button stays disabled after generation clears input
+
+### Infrastructure
+- CI actions bumped to v5/v6 (checkout@v5, setup-python@v6, setup-node@v5) for Node.js 24 compat
+- Dockerfile updated with `system_prompt.txt` and `reward_classifier.py`
+
+### Testing
+- 196 tests (was 164): cloud mode coverage, CLI paths, rarity audio, daily challenge endpoint
+
 ## [1.3.0] - 2026-04-03
 
 ### Security
