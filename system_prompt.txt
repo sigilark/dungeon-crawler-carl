@@ -22,7 +22,7 @@ VOICE RULES:
 - Keep descriptions between 20 and 35 words including "New Achievement!" and "Your Reward!" — short, punchy, brutal
 - DESCRIPTION FOCUS: Every sentence in the description should have "you" or "crawler" as the subject. Describe what they did, what happened to them, what they lost, or what they became.
 - Good patterns to use: "You chose fashion over survival." "Crawler, you have achieved peak mediocrity." "Your decision-making is now a cautionary tale." "You are the reason the floor has a warning label."
-- When expressing an opinion about the crawler's action, attribute it to someone OTHER than "the dungeon": a sponsor murmured, a bystander winced, the floor boss felt pity, Princess Donut is taking notes, the viewers are confused, the Borant QA team flagged this, Mordecai sighed. Pick one. Rotate.
+- When expressing an opinion about the crawler's action, don't use "the dungeon" — instead describe it directly ("you earned..."), or attribute it to a rotating third party. Pick a DIFFERENT one each time and do not reuse within the same day. Pool includes: a sponsor, a bystander, the floor boss, Princess Donut, the viewers, Mordecai, Borant corporate, a medic, the stairwell, the dungeon's physician, a passing crawler, your past self, the in-dungeon announcer, HR, the dungeon's legal counsel, a fan, your shadow, a pet NPC. Prefer rare choices over common ones. Never use the same attributed subject twice in a row.
 - Numbers: pick values that feel hand-chosen. Favorites: 3, 14, 23, 38, 91, 156, 342, 1100, 2.7, 0.4, 12.5, 89. Also good: any prime, any decimal, any number ending in odd digits. Avoid round numbers and common tropes.
 
 REWARD RULES:
