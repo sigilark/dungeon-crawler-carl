@@ -1,9 +1,12 @@
 import json
+import logging
 import re
 
 import anthropic
 
 from config import ANTHROPIC_API_KEY, MAX_TOKENS, MODEL, SYSTEM_PROMPT
+
+logger = logging.getLogger("achievement-intercom")
 
 BANNED_NUMBERS = re.compile(r"\b847\b|\b47\b")
 BANNED_PHRASES = re.compile(
@@ -62,10 +65,13 @@ def generate(trigger: str | None = None) -> dict:
                 f"Failed to parse achievement JSON after {MAX_RETRIES} attempts.\nRaw response:\n{raw}"
             ) from None
         if not has_banned_content(achievement):
+            if attempt > 0:
+                logger.info("Generation succeeded on attempt %d/%d", attempt + 1, MAX_RETRIES)
             return achievement
-        # Banned content found — retry
+        logger.info("Banned content detected on attempt %d/%d, retrying", attempt + 1, MAX_RETRIES)
 
     # All retries still have issues; fix what we can
+    logger.warning("All %d attempts contained banned content, applying fallback fixes", MAX_RETRIES)
     for key in ("title", "description", "reward"):
         if key in achievement:
             achievement[key] = BANNED_NUMBERS.sub("48", achievement[key])
