@@ -180,3 +180,23 @@ def test_daily_challenge_stats_empty(client):
     data = res.json()
     assert data["total_participations"] == 0
     assert data["days_active"] == 0
+
+
+@patch("server.synthesize_achievement_parallel", return_value=[])
+@patch("server.generate", return_value=SAMPLE_ACHIEVEMENT)
+def test_rate_limiting_generate(mock_gen, mock_synth, client):
+    """POST /api/generate returns 429 after exceeding rate limit."""
+    from server import limiter
+
+    limiter.enabled = True
+    try:
+        # 3/minute limit — first 3 should succeed
+        for _ in range(3):
+            res = client.post("/api/generate", json={"trigger": "test"})
+            assert res.status_code == 200
+
+        # 4th should be rate limited
+        res = client.post("/api/generate", json={"trigger": "test"})
+        assert res.status_code == 429
+    finally:
+        limiter.enabled = False

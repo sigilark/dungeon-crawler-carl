@@ -23,6 +23,9 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 import archive
 from card import render_card
@@ -36,11 +39,15 @@ from synthesis import (
 
 logger = logging.getLogger("achievement-intercom")
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="The Crawl Log",
     description="Dungeon Crawler Carl achievement system — API documentation",
-    version="1.1.0",
+    version="1.4.0",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 STATIC_DIR = Path(__file__).parent / "static"
 STATIC_DIR.mkdir(exist_ok=True)
@@ -150,7 +157,8 @@ def shared_achievement(entry_id: int, request: Request):
 
 
 @app.post("/api/generate")
-async def api_generate(req: GenerateRequest):
+@limiter.limit("3/minute;20/hour")
+async def api_generate(request: Request, req: GenerateRequest):
     """Generate achievement with SSE streaming: text first, then audio."""
 
     # Phase 1: Generate text via Claude (blocking, run in thread)
@@ -269,7 +277,8 @@ def api_achievement(entry_id: int):
 
 
 @app.get("/api/achievements/{entry_id}/card.png")
-def api_achievement_card(entry_id: int):
+@limiter.limit("3/minute;20/hour")
+def api_achievement_card(request: Request, entry_id: int):
     """Render a shareable PNG image of an achievement."""
     entry = archive.get(entry_id)
     if not entry:
