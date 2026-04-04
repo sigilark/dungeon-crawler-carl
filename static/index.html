@@ -241,11 +241,57 @@
     .page-btn:hover { text-decoration: underline; }
     .page-info { color: #666; font-size: 0.75rem; }
 
+    /* Daily Challenge banner */
+    .daily-challenge {
+      width: 100%;
+      max-width: 600px;
+      background: linear-gradient(135deg, #1e2a4a 0%, #16213e 100%);
+      border: 1px solid #f0c04066;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1.2rem;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .daily-challenge:hover {
+      border-color: #f0c040;
+      box-shadow: 0 0 8px rgba(240, 192, 64, 0.2);
+    }
+    .daily-challenge-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+    }
+    .daily-challenge-label {
+      color: #f0c040;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: bold;
+    }
+    .daily-challenge-date {
+      color: #555;
+      font-size: 0.65rem;
+    }
+    .daily-challenge-text {
+      color: #ccc;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .daily-challenge-hint {
+      color: #666;
+      font-size: 0.65rem;
+      margin-top: 0.3rem;
+    }
+
     /* Mobile responsive */
     @media (max-width: 640px) {
       body { padding: 1.2rem 0.8rem; }
       h1 { font-size: 1.3rem; letter-spacing: 2px; text-align: center; }
       .subtitle { font-size: 0.7rem; text-align: center; margin-bottom: 1.2rem; }
+      .daily-challenge { padding: 0.7rem 0.8rem; }
+      .daily-challenge-text { font-size: 0.8rem; }
       .input-row { flex-direction: column; }
       input[type="text"] { font-size: 1rem; padding: 0.9rem 1rem; }
       button { padding: 0.9rem; font-size: 1rem; }
@@ -265,6 +311,15 @@
 <body>
   <h1>The Crawl Log</h1>
   <p class="subtitle">congratulations, you're still alive. for now.</p>
+
+  <div class="daily-challenge" id="dailyChallenge" onclick="useDailyChallenge()">
+    <div class="daily-challenge-header">
+      <span class="daily-challenge-label">Daily Challenge</span>
+      <span class="daily-challenge-date" id="dailyChallengeDate"></span>
+    </div>
+    <div class="daily-challenge-text" id="dailyChallengeText"></div>
+    <div class="daily-challenge-hint">click to accept the challenge</div>
+  </div>
 
   <div class="input-row">
     <input type="text" id="trigger" placeholder="e.g. took a 2 hour lunch and nobody noticed" maxlength="200" />
@@ -614,6 +669,66 @@
         console.error('Deep link failed', err);
       }
     }
+
+    /* Daily Challenge — one prompt per day, deterministic by date */
+    const DAILY_CHALLENGES = [
+      'Do something your manager would not approve of',
+      'Accomplish something while technically doing something else',
+      'Break something that was working fine before you touched it',
+      'Eat something you probably should not have',
+      'Send a message you immediately regret',
+      'Automate something that takes less time to do manually',
+      'Attend a meeting you have no business being in',
+      'Procrastinate on something important by doing something useless',
+      'Fix a problem you personally created',
+      'Take an unreasonably long break and see if anyone notices',
+      'Have a conversation you have been avoiding',
+      'Google something embarrassingly basic for your job',
+      'Say yes to something you should have said no to',
+      'Convince someone of something you made up on the spot',
+      'Spend money on something you absolutely do not need',
+      'Start a project you know you will never finish',
+      'Survive an interaction that should not have been that difficult',
+      'Do the bare minimum and see if anyone can tell',
+      'Accidentally make someone else look bad',
+      'Try to be productive before 9am and see what happens',
+      'Explain something you do not actually understand',
+      'Organize something that will be messy again within 24 hours',
+      'Make a decision based entirely on laziness',
+      'Take credit for something the universe handed you',
+      'Complain about something you could easily fix yourself',
+      'Overengineer a solution to a trivial problem',
+      'Show up somewhere overdressed or underdressed',
+      'Accidentally reveal something you were not supposed to know',
+      'Attempt to cook something ambitious and report the results',
+      'Do something nice for someone and immediately undermine it',
+      'Lose track of time doing something completely pointless',
+    ];
+
+    function getDailyChallenge() {
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      /* Simple hash from date string to get a stable daily index */
+      let hash = 0;
+      for (let i = 0; i < dateStr.length; i++) {
+        hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+        hash |= 0;
+      }
+      const idx = Math.abs(hash) % DAILY_CHALLENGES.length;
+      return { text: DAILY_CHALLENGES[idx], date: dateStr };
+    }
+
+    function useDailyChallenge() {
+      const challenge = getDailyChallenge();
+      triggerInput.value = '[Daily Challenge] ' + challenge.text;
+      triggerInput.dispatchEvent(new Event('input'));
+      triggerInput.focus();
+    }
+
+    /* Initialize daily challenge banner */
+    const dc = getDailyChallenge();
+    document.getElementById('dailyChallengeText').textContent = dc.text;
+    document.getElementById('dailyChallengeDate').textContent = new Date(dc.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     /* Random trigger suggestions — rotates placeholder text on each page load */
     const SUGGESTIONS = [
