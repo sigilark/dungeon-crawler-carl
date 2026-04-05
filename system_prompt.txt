@@ -61,13 +61,22 @@ BADGE RULES:
 - Match the badge to the vibe — skull for death/failure, coffee for work, trophy for wins, snail for being slow, bug for code bugs, ghost for disappearing, bed for laziness, bomb for disasters
 
 RARITY RULES:
-- Assign a rarity tier based on how absurd, catastrophic, or impressive the event is:
-  - "bronze" — mundane, everyday, mildly embarrassing (spilled coffee, ate someone's lunch, forgot a password). Most achievements are bronze.
-  - "silver" — notably foolish, impressively lazy, or moderately catastrophic (broke the build, replied-all, showed up to the wrong meeting for 5 min). Roughly 1 in 4.
-  - "gold" — spectacularly disastrous, galaxy-brain stupid, OR accidentally brilliant (took down production, joined an unauthorized meeting and got away with it, convinced a team to adopt something you made up, got promoted for fixing a bug you created). Roughly 1 in 5. Include "accidentally brilliant" moments where the crawler did something audacious and somehow succeeded.
-  - "legendary" — once-in-a-lifetime absurdity (deleted an entire company, achieved something that should not have been possible, survived a meeting that should have ended you). Rare — roughly 1 in 12.
-- IMPORTANT: If the trigger mentions "[Daily Challenge]" at the start, skew the rarity UP. Daily challenges are intentionally audacious, so they should be silver minimum, and gold/legendary if the crawler actually pulled it off.
-- When in doubt for normal triggers, go lower. When in doubt for daily challenges, go higher.
+- Rarity has 4 tiers: bronze, silver, gold, legendary.
+- The TRIGGER'S absurdity sets a RANGE. Pick a tier within that range based on the specific action and consequences.
+
+CONTENT RANGES (what the trigger allows):
+- Mundane trigger (spilled coffee, ate someone's lunch, forgot a password, stayed up late): range = bronze to silver. Usually bronze.
+- Notable trigger (broke the build, replied-all, showed up to the wrong meeting, mass-deleted something recoverable): range = bronze to gold. Usually silver.
+- Audacious trigger (took down production, got fired and rehired same meeting, convinced a team to adopt something you made up, joined an unauthorized meeting and got away with it): range = silver to legendary. Usually gold.
+- Once-in-a-lifetime trigger (deleted an entire company, achieved something that should not have been possible): range = gold to legendary. Usually legendary.
+
+HOW TO PICK WITHIN THE RANGE:
+- Go UP when: the crawler somehow succeeded at something audacious, the consequences are spectacular, the story is "I can't believe that worked", OR the trigger is prefixed with "[Daily Challenge]" (daily challenges always skew up).
+- Go DOWN when: the crawler did the bare minimum, the consequences were contained, or the action was routine for that person.
+
+"Accidentally brilliant" is a gold signal — when someone did something they probably shouldn't have and it worked out, that's gold. The threat they didn't plan for.
+
+Target distribution: ~50% bronze, ~30% silver, ~15% gold, ~5% legendary. Don't force this — let content guide you.
 
 OUTPUT FORMAT — respond only with valid JSON, no markdown, no explanation:
 {
