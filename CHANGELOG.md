@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.1] - 2026-04-06
+
+### Model & Performance
+- Switched from Claude Sonnet 4.5 → Sonnet 4.6 (via Opus 4.6 experiment)
+- Generation latency: 15-20s → 6-10s (eliminated 5x retry penalty)
+- Retry rate: 100% (Sonnet 4.5) → ~1 retry avg (Sonnet 4.6)
+- Cost per achievement: ~$0.05 → ~$0.02
+
+### Prompt Engineering
+- **Streisand effect fix**: removed all negative instructions from prompt (banned numbers, banned phrases). Code-level enforcement catches them silently via regex + retry.
+- **Verbatim copying fix**: model was reproducing prompt example quotes character-for-character. Added 3+ example flavors per reward format.
+- **Number fixation fix**: removed "good numbers" list from prompt (model fixated on listed values). Positive guidance only.
+- DCC references balanced as "rare seasoning" (~1 in 5 rewards) — Donut, Mordecai, sponsors, Borant as Easter eggs, not crutches
+- Content-based rarity ranges: trigger absurdity sets floor/ceiling, model picks within range
+- Daily Challenge triggers auto-skew rarity UP (silver minimum)
+- Stat reward numbers constrained to -10 to +10 range (larger only when the big number IS the joke)
+
+### Observability
+- Generator retry logging: logs which specific number/phrase triggered each retry attempt
+- CloudWatch dashboard: CrawlLog-Operations with API latency, requests, errors, ECS resources, DynamoDB capacity, retry log query
+
+### Security
+- Docker base image upgraded from Python 3.11-slim to 3.12-slim
+- Trivy + bandit security scans added to CI, results in GitHub Security tab (SARIF upload)
+- Docker CVEs fixed: jaraco.context (CVE-2026-23949), wheel (CVE-2026-24049) via setuptools upgrade
+- 0 Python CVEs in production image, 0 bandit findings
+
+### Infrastructure
+- Deleted unused `resynthesise_all.py` one-off script
+- Distribution check script now uses varied triggers (was same message 20x, causing artificial clustering)
+
 ## [1.5.0] - 2026-04-04
 
 ### Animated Card Reveal
